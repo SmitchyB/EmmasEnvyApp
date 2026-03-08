@@ -1,0 +1,46 @@
+{
+  "expo": {
+    "name": "Emmas-Envy",
+    "slug": "Emmas-Envy",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/images/emmasenvy.png",
+    "scheme": "emmasenvy",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#0d0d0d",
+        "foregroundImage": "./assets/images/emmasenvy.png"
+      },
+      "edgeToEdgeEnabled": true,
+      "predictiveBackGestureEnabled": false
+    },
+    "web": {
+      "output": "static",
+      "favicon": "./assets/images/emmasenvy.png"
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/images/emmasenvy.png",
+          "imageWidth": 200,
+          "resizeMode": "contain",
+          "backgroundColor": "#e91e8c",
+          "dark": {
+            "backgroundColor": "#0d0d0d"
+          }
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true,
+      "reactCompiler": true
+    }
+  }
+}

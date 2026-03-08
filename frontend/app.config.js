@@ -1,0 +1,16 @@
+/**
+ * Expo config. For testing on a physical device (Expo Go on Android/iPad),
+ * set EXPO_PUBLIC_API_URL to your computer's LAN IP so the device can reach the backend.
+ * Example: EXPO_PUBLIC_API_URL=http://192.168.1.5:3002
+ */
+const base = require('./app.json');
+
+module.exports = {
+  ...base,
+  expo: {
+    ...base.expo,
+    extra: {
+      EXPO_PUBLIC_API_URL: process.env.EXPO_PUBLIC_API_URL ?? null,
+    },
+  },
+};
