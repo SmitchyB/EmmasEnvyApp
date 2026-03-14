@@ -37,7 +37,7 @@ fs.mkdirSync(PORTFOLIO_PHOTOS_DIR, { recursive: true }); // Create the portfolio
 fs.mkdirSync(PRODUCTS_UPLOAD_DIR, { recursive: true }); // Create the products upload directory
 fs.mkdirSync(SUPPORT_UPLOAD_DIR, { recursive: true }); // Create the support upload directory
 const app = express(); // Create the express application
-const PORT = process.env.PORT || 3002; // Define the port
+const PORT = process.env.PORT || 5000; // Define the port
 const CLIENT_URL = process.env.CLIENT_URL || 'http://localhost:4321'; // Define the client URL
 const AUTH_LOG = '[Auth]'; // Define the auth log
 const REQ_LOG = '[Request]'; // Define the request log
