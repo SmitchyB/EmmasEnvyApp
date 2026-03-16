@@ -39,85 +39,12 @@ fs.mkdirSync(SUPPORT_UPLOAD_DIR, { recursive: true }); // Create the support upl
 const app = express(); // Create the express application
 const PORT = process.env.PORT || 5000; // Define the port
 const CLIENT_URL = process.env.CLIENT_URL || 'http://localhost:4321'; // Define the client URL
-const AUTH_LOG = '[Auth]'; // Define the auth log
-const REQ_LOG = '[Request]'; // Define the request log
+app.use(cors({ origin: CLIENT_URL, credentials: true }));
+app.use(express.json());
 
-// Log EVERY incoming request – first middleware so we see if traffic reaches the server
-app.use((req, res, next) => {
-  const ts = new Date().toISOString();
-  const clientIp = req.ip || req.socket?.remoteAddress || req.headers['x-forwarded-for'] || 'unknown';
-  console.log(REQ_LOG, ts, 'IN', req.method, req.originalUrl, '| client:', clientIp, '| host:', req.headers.host || '-');
-  next();
-});
-
-app.use(cors({ origin: CLIENT_URL, credentials: true })); // Use the cors middleware to allow requests from the client URL  
-app.use(express.json()); // Use the express.json middleware to parse the request body
-
-// Request logging – after body parse so we can see POST body
-app.use((req, res, next) => {
-  if (process.env.NODE_ENV !== 'production') { 
-    const ts = new Date().toISOString();
-    const authHeader = req.headers.authorization;
-    const hasAuth = !!(authHeader && authHeader.startsWith('Bearer '));
-    const log = {
-      ts,
-      method: req.method,
-      path: req.path,
-      url: req.originalUrl,
-      host: req.headers.host,
-      contentType: req.headers['content-type'] || '(none)',
-      hasAuthToken: hasAuth,
-      authTokenLength: hasAuth ? Math.max(0, (authHeader.length || 0) - 7) : 0, // "Bearer " = 7
-    };
-    if ((req.method === 'POST' || req.method === 'PATCH') && req.body && typeof req.body === 'object') {
-      log.bodyKeys = Object.keys(req.body);
-      log.bodySize = JSON.stringify(req.body).length;
-    }
-    console.log(AUTH_LOG, '>>> Incoming request', log);
-  }
-  next();
-});
-
-// Prevent browsers from caching API responses (avoids stale HTML 404 for GET when backend was not on :3000)
 app.use('/api', (req, res, next) => {
   res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
   res.set('Pragma', 'no-cache');
-  next();
-});
-
-// Response logging for /api – log what we send back (status, content-type, body summary)
-app.use('/api', (req, res, next) => {
-  const originalJson = res.json.bind(res);
-  res.json = function (body) {
-    if (process.env.NODE_ENV !== 'production') {
-      const contentType = res.get('Content-Type');
-      console.log(AUTH_LOG, '<<< Response (res.json)', {
-        method: req.method,
-        path: req.path,
-        statusCode: res.statusCode,
-        contentType: contentType || 'application/json',
-        bodyKeys: body && typeof body === 'object' ? Object.keys(body) : [],
-        bodyPreview:
-          body && typeof body === 'object'
-            ? JSON.stringify(body).slice(0, 120) + (JSON.stringify(body).length > 120 ? '…' : '')
-            : String(body).slice(0, 80),
-      });
-    }
-    return originalJson(body);
-  };
-  res.on('finish', () => {
-    if (process.env.NODE_ENV !== 'production') {
-      const contentType = res.get('Content-Type') || '';
-      if (!contentType.includes('application/json')) {
-        console.log(AUTH_LOG, '<<< Response (finish, non-JSON)', {
-          method: req.method,
-          path: req.path,
-          statusCode: res.statusCode,
-          contentType,
-        });
-      }
-    }
-  });
   next();
 });
 
@@ -142,23 +69,17 @@ app.use('/api/cart', cartRoutes); // Mount the cart routes
 app.use('/api/checkout', checkoutRoutes); // Mount the checkout routes
 app.use('/uploads', express.static(UPLOADS_DIR)); // Mount the uploads directory
 
-// 404 handler – if user gets here, no route matched (log and return JSON)
 app.use((req, res, next) => {
-  console.log(AUTH_LOG, '404 Not Found', { method: req.method, path: req.path });
   res.status(404).json({ error: 'Not found', path: req.path });
 });
-// Error handler – if server gets here, an error occurred (log and return JSON)
 app.use((err, req, res, next) => {
-  console.error(AUTH_LOG, 'Server error', err?.stack || err);
+  console.error('Server error', err?.stack || err);
   const isDev = process.env.NODE_ENV !== 'production';
   res.status(500).json({
     error: 'Internal server error',
     ...(isDev && err?.message && { detail: err.message }),
   });
 });
-// Start the server
 app.listen(PORT, '0.0.0.0', () => {
-  console.log(REQ_LOG, `Server listening on 0.0.0.0:${PORT} (accepts connections from LAN)`);
-  console.log(REQ_LOG, `Use http://<this-pc-ip>:${PORT} from your phone (e.g. http://10.0.0.187:${PORT})`);
-  console.log(AUTH_LOG, 'Auth routes mounted at /api/auth (GET /me, POST /login, POST /register, etc.)');
+  console.log(`Server listening on 0.0.0.0:${PORT}`);
 });
