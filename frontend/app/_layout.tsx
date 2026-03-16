@@ -3,9 +3,15 @@ import { DarkTheme, ThemeProvider } from '@react-navigation/native'; // Import t
 import { Stack } from 'expo-router'; // Import the Stack from expo-router for the navigation
 import { StatusBar } from 'expo-status-bar'; // Import the StatusBar from expo-status-bar for the status bar
 import { StyleSheet, View } from 'react-native'; // Import the StyleSheet and View from react-native for the styling
-import 'react-native-reanimated'; // Import the reanimated library for the animations
-import { Header } from '@/components/header'; // Import the Navbar component from @/components/navbar
-import { GradientColors } from '@/constants/theme'; // Import the GradientColors from @/constants/theme
+import 'react-native-reanimated'; // Import the react-native-reanimated for the animations
+import { Header } from '@/components/header'; // Import the Header component from @/components/header for the header
+import { GradientColors } from '@/constants/theme'; // Import the GradientColors from @/constants/theme for the gradient colors
+import { AuthProvider } from '@/contexts/AuthContext'; // Import the AuthProvider from @/contexts/AuthContext for the authentication
+
+// Summary of changes for Week 2 submission: 
+// Wrapped the app in the auth provider so that the authentication state is shared across the app.
+// added signup-2fa-choice, complete-profile, and verify-2fa screens. 
+// Also added an animation: fade to the screens for smoother transitions as i was having issues with changing screens using the buttons on the account page.
 
 // Define the unstable settings for the Expo Router. It uses this to determine navigation behavior/routes.
 export const unstable_settings = {
@@ -27,9 +33,11 @@ const TransparentTheme = {
   },
 };
 
+/** RootLayout is the main layout component for the app. It is the entry point for the app. */
 export default function RootLayout() {
   return (
     <ThemeProvider value={TransparentTheme}>
+      <AuthProvider>
       <View style={styles.root}>
         <LinearGradient
           colors={gradientColors}
@@ -44,12 +52,17 @@ export default function RootLayout() {
             screenOptions={{
               headerShown: false,
               contentStyle: { backgroundColor: 'transparent' },
+              animation: 'fade',
             }}>
             <Stack.Screen name="tabs" />
+            <Stack.Screen name="signup-2fa-choice" />
+            <Stack.Screen name="complete-profile" />
+            <Stack.Screen name="verify-2fa" />
           </Stack>
         </View>
       </View>
       <StatusBar style="light" />
+      </AuthProvider>
     </ThemeProvider>
   );
 }

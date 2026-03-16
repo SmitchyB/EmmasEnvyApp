@@ -8,15 +8,26 @@ const { signToken, signTempToken, verifyToken } = require('../lib/jwt');
 const { requireAuth, requireAuthOrTemp2FA } = require('../middleware/auth');
 const { sendOtpEmail } = require('../lib/otp');
 const { verify: verifyTotp, generateSecret, getOtpAuthUrl } = require('../lib/totp');
-const { SESSION_EXPIRY_MS, OTP_EXPIRY_MS, SALT_ROUNDS } = require('../lib/constants');
+const {
+  SESSION_EXPIRY_MS,
+  STAY_SIGNED_IN_EXPIRY_MS,
+  OTP_EXPIRY_MS,
+  SALT_ROUNDS,
+  STAY_SIGNED_IN_JWT_EXPIRES_IN,
+} = require('../lib/constants');
 const { profilePhotoUpload } = require('../lib/upload');
 
 const router = express.Router();
 const AUTH_LOG = '[Auth]';
 
+/** Hash device ID for storage and lookup (never store raw device ID). */
+function hashDeviceId(deviceId) {
+  if (!deviceId || typeof deviceId !== 'string') return null;
+  return crypto.createHash('sha256').update(deviceId.trim()).digest('hex');
+}
+
 // GET /api/auth/ping – no auth, so you can verify backend is reachable (diagnostics)
 router.get('/ping', (req, res) => {
-  console.log(AUTH_LOG, 'GET /ping: 200');
   res.json({ ok: true, service: 'auth', ts: new Date().toISOString() });
 });
 
@@ -26,17 +37,27 @@ function normalizePhone(phone) {
   return digits.length >= 10 ? digits : null;
 }
 
+/** Normalize DOB to YYYY-MM-DD. Accepts 8 digits as MMDDYYYY. */
+function normalizeDob(dob) {
+  if (!dob || typeof dob !== 'string') return dob;
+  const trimmed = String(dob).trim();
+  const digits = trimmed.replace(/\D/g, '');
+  if (digits.length === 8) {
+    const mm = digits.slice(0, 2);
+    const dd = digits.slice(2, 4);
+    const yyyy = digits.slice(4, 8);
+    return `${yyyy}-${mm}-${dd}`;
+  }
+  return trimmed;
+}
+
 // POST /api/auth/register
+// If two_factor_enabled: optional two_factor_type 'email' | 'phone' | 'totp'. Defaults to email/phone from sign-up method.
 router.post('/register', async (req, res, next) => {
   try {
-    const { email, phone, password, two_factor_enabled, two_factor_type } = req.body;
+    const { email, phone, password, two_factor_enabled, two_factor_type: reqTwoFactorType } = req.body;
     const useEmail = email != null && String(email).trim() !== '';
     const usePhone = !useEmail && phone != null && normalizePhone(phone);
-    console.log(AUTH_LOG, 'POST /register', {
-      useEmail,
-      usePhone,
-      identifier: useEmail ? email?.trim()?.slice(0, 3) + '…' : usePhone ? '(phone)' : null,
-    });
     if (!useEmail && !usePhone) {
       return res.status(400).json({ error: 'Email or phone is required' });
     }
@@ -44,24 +65,29 @@ router.post('/register', async (req, res, next) => {
       return res.status(400).json({ error: 'Password must be at least 8 characters' });
     }
     const twoFactorEnabled = !!two_factor_enabled;
-    const twoFactorType =
-      twoFactorEnabled && (two_factor_type === 'phone' || two_factor_type === 'email')
-        ? two_factor_type
-        : null;
+    let twoFactorType = null;
+    if (twoFactorEnabled) {
+      const requested = reqTwoFactorType === 'totp' ? 'totp' : reqTwoFactorType === 'email' ? 'email' : reqTwoFactorType === 'phone' ? 'phone' : null;
+      if (requested === 'totp') {
+        twoFactorType = 'totp';
+      } else if (requested === 'email') {
+        if (!useEmail) return res.status(400).json({ error: 'Email 2FA requires signing up with email' });
+        twoFactorType = 'email';
+      } else if (requested === 'phone') {
+        if (!usePhone) return res.status(400).json({ error: 'Phone 2FA requires signing up with phone' });
+        twoFactorType = 'phone';
+      } else {
+        twoFactorType = useEmail ? 'email' : 'phone';
+      }
+    }
 
     if (useEmail) {
       const existing = await db.findUserByEmail(email.trim());
-      if (existing) {
-        console.log(AUTH_LOG, 'POST /register: 409 email exists');
-        return res.status(409).json({ error: 'An account with this email already exists' });
-      }
+      if (existing) return res.status(409).json({ error: 'An account with this email already exists' });
     } else {
       const normalized = normalizePhone(phone);
       const existing = await db.findUserByPhone(normalized);
-      if (existing) {
-        console.log(AUTH_LOG, 'POST /register: 409 phone exists');
-        return res.status(409).json({ error: 'An account with this phone number already exists' });
-      }
+      if (existing) return res.status(409).json({ error: 'An account with this phone number already exists' });
     }
 
     const hashedPassword = await bcrypt.hash(String(password), SALT_ROUNDS);
@@ -74,19 +100,38 @@ router.post('/register', async (req, res, next) => {
       two_factor_enabled: twoFactorEnabled,
       two_factor_type: twoFactorType,
     };
+
+    if (twoFactorType === 'totp') {
+      const secret = generateSecret();
+      insertData.two_factor_secret = secret;
+    }
+
     const row = await db.insertUser(insertData);
     const user = db.rowToUser(row);
     const sessionToken = crypto.randomUUID();
     const deviceName = db.parseUserAgent(req.get('User-Agent'));
     const ipAddress = db.getClientIp(req);
-    const deviceFingerprint = req.body.deviceId || null;
+    const deviceFingerprint = hashDeviceId(req.body.deviceId) || null;
     const expiresAt = new Date(Date.now() + SESSION_EXPIRY_MS);
     await db.createAuthSession(user.id, sessionToken, deviceName, deviceFingerprint, ipAddress, true, false, expiresAt);
+
+    if (twoFactorEnabled) {
+      const tempToken = signTempToken({ userId: user.id });
+      if (twoFactorType === 'totp') {
+        const accountName = user.email || user.phone || `user-${user.id}`;
+        const totpSetup = { secret: insertData.two_factor_secret, qr_url: getOtpAuthUrl(insertData.two_factor_secret, accountName, 'EmmasEnvy') };
+        return res.status(201).json({ requires2FA: true, tempToken, twoFactorType, user, totp_setup: totpSetup });
+      }
+      const otp = String(Math.floor(100000 + Math.random() * 900000));
+      const otpExpiresAt = new Date(Date.now() + OTP_EXPIRY_MS);
+      await db.setOtp(row.id, otp, otpExpiresAt);
+      console.log(AUTH_LOG, '2FA OTP (console only, not sent):', otp, '| channel:', twoFactorType);
+      return res.status(201).json({ requires2FA: true, tempToken, twoFactorType, user });
+    }
+
     const token = signToken({ userId: user.id, email: user.email, phone: user.phone, sessionId: sessionToken });
-    console.log(AUTH_LOG, 'POST /register: 201', { userId: user.id, tokenLength: token?.length });
     res.status(201).json({ user, token });
   } catch (err) {
-    console.error(AUTH_LOG, 'POST /register error', err?.message || err, err?.stack);
     next(err);
   }
 });
@@ -97,13 +142,6 @@ router.post('/login', async (req, res, next) => {
     const { email, phone, password, staySignedIn, deviceId } = req.body;
     const useEmail = email != null && String(email).trim() !== '';
     const usePhone = !useEmail && phone != null && normalizePhone(phone);
-    console.log(AUTH_LOG, 'POST /login', {
-      useEmail,
-      usePhone,
-      identifier: useEmail ? email?.trim()?.slice(0, 3) + '…' : usePhone ? '(phone)' : null,
-      staySignedIn: !!staySignedIn,
-      hasDeviceId: !!deviceId,
-    });
     if (!useEmail && !usePhone) {
       return res.status(400).json({ error: 'Email or phone is required' });
     }
@@ -114,33 +152,32 @@ router.post('/login', async (req, res, next) => {
     const row = useEmail
       ? await db.findUserByEmail(email.trim())
       : await db.findUserByPhone(normalizePhone(phone));
-    if (!row) {
-      console.log(AUTH_LOG, 'POST /login: 401 user not found');
-      return res.status(401).json({ error: 'Invalid email/phone or password' });
-    }
-    if (row.status !== 'active') {
-      console.log(AUTH_LOG, 'POST /login: 401 account inactive', { userId: row.id });
-      return res.status(401).json({ error: 'Account is deactivated' });
-    }
+    if (!row) return res.status(401).json({ error: 'Invalid email/phone or password' });
+    if (row.status !== 'active') return res.status(401).json({ error: 'Account is deactivated' });
 
     const match = await bcrypt.compare(String(password), row.password);
-    if (!match) {
-      console.log(AUTH_LOG, 'POST /login: 401 password mismatch', { userId: row.id });
-      return res.status(401).json({ error: 'Invalid email/phone or password' });
-    }
+    if (!match) return res.status(401).json({ error: 'Invalid email/phone or password' });
 
     await db.updateLastLogin(row.id);
     const user = db.rowToUser(row);
 
-    // If 2FA enabled, check user_sessions for a trusted device with this fingerprint (skip 2FA if found)
-    const trustedSession = deviceId ? await db.findTrustedSessionByUserAndFingerprint(row.id, deviceId) : null;
+    // If 2FA enabled, check for an active trusted session for this device (session-based trust)
+    const deviceIdHash = hashDeviceId(deviceId);
+    const trustedSession = deviceIdHash ? await db.findTrustedSessionByUserAndFingerprint(row.id, deviceIdHash) : null;
     const canSkip2FA = user.two_factor_enabled && !!trustedSession;
+
+    if (user.two_factor_enabled) {
+      console.log(AUTH_LOG, 'Sign-in 2FA check', {
+        userId: row.id,
+        deviceIdHashPreview: deviceIdHash ? deviceIdHash.slice(0, 12) + '…' : null,
+        hasTrustedSession: !!trustedSession,
+        canSkip2FA,
+      });
+    }
 
     if (user.two_factor_enabled && !canSkip2FA) {
       if (user.two_factor_type === 'totp') {
-        // TOTP: no OTP sent; user enters code from authenticator app
         const tempToken = signTempToken({ userId: user.id });
-        console.log(AUTH_LOG, 'POST /login: 200 requires2FA', { userId: user.id, twoFactorType: 'totp' });
         return res.json({ requires2FA: true, tempToken, twoFactorType: 'totp' });
       }
       const otp = String(Math.floor(100000 + Math.random() * 900000));
@@ -150,21 +187,37 @@ router.post('/login', async (req, res, next) => {
         await sendOtpEmail(user.email, otp);
       }
       if (user.two_factor_type === 'phone') {
-        console.log('[dev] OTP for', user.phone, ':', otp);
+        console.log(AUTH_LOG, '2FA OTP (console only, not sent):', otp, '| channel: phone');
       }
       const tempToken = signTempToken({ userId: user.id });
-      console.log(AUTH_LOG, 'POST /login: 200 requires2FA', { userId: user.id, tempTokenLength: tempToken?.length });
       return res.json({ requires2FA: true, tempToken, twoFactorType: user.two_factor_type });
     }
 
     const sessionToken = crypto.randomUUID();
     const deviceName = db.parseUserAgent(req.get('User-Agent'));
     const ipAddress = db.getClientIp(req);
-    const expiresAt = new Date(Date.now() + SESSION_EXPIRY_MS);
-    await db.createAuthSession(user.id, sessionToken, deviceName, deviceId || null, ipAddress, true, canSkip2FA, expiresAt);
-    const token = signToken({ userId: user.id, email: user.email, phone: user.phone, sessionId: sessionToken });
-    console.log(AUTH_LOG, 'POST /login: 200', { userId: user.id, tokenLength: token?.length });
+    const useLongSession = !!staySignedIn;
+    const sessionExpiryMs = useLongSession ? STAY_SIGNED_IN_EXPIRY_MS : SESSION_EXPIRY_MS;
+    const expiresAt = new Date(Date.now() + sessionExpiryMs);
+    await db.createAuthSession(user.id, sessionToken, deviceName, deviceIdHash || null, ipAddress, true, canSkip2FA, expiresAt);
+    const token = signToken(
+      { userId: user.id, email: user.email, phone: user.phone, sessionId: sessionToken },
+      useLongSession ? STAY_SIGNED_IN_JWT_EXPIRES_IN : undefined
+    );
     res.json({ user, token });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// POST /api/auth/logout – invalidate current session (requires auth)
+router.post('/logout', requireAuth, async (req, res, next) => {
+  try {
+    const sessionRowId = req.sessionRowId;
+    if (sessionRowId != null) {
+      await db.deleteSessionById(sessionRowId, req.user.id);
+    }
+    res.json({ message: 'Signed out.' });
   } catch (err) {
     next(err);
   }
@@ -189,6 +242,9 @@ router.post('/verify-2fa', async (req, res, next) => {
       return res.status(400).json({ error: 'Please enter at least 6 digits' });
     }
 
+    // Only add device to trusted set when rememberDevice is checked (store hash, not raw ID)
+    const deviceIdHash = hashDeviceId(deviceId);
+
     const row = await db.findUserById(decoded.userId);
     if (!row || row.status !== 'active') {
       return res.status(401).json({ error: 'User not found or inactive' });
@@ -212,11 +268,19 @@ router.post('/verify-2fa', async (req, res, next) => {
       await db.clearOtp(row.id);
     }
     const user = db.rowToUser(row);
+
+    // "Remember this device" is stored only on the session row (is_trusted_device); no ignore_2fa_devices
+    console.log(AUTH_LOG, 'Verify-2FA result', {
+      userId: row.id,
+      rememberDevice: !!rememberDevice,
+      deviceIdHashPreview: deviceIdHash ? deviceIdHash.slice(0, 12) + '…' : null,
+    });
+
     const sessionToken = crypto.randomUUID();
     const deviceName = db.parseUserAgent(req.get('User-Agent'));
     const ipAddress = db.getClientIp(req);
     const expiresAt = new Date(Date.now() + SESSION_EXPIRY_MS);
-    await db.createAuthSession(user.id, sessionToken, deviceName, deviceId || null, ipAddress, true, !!rememberDevice, expiresAt);
+    await db.createAuthSession(user.id, sessionToken, deviceName, deviceIdHash || null, ipAddress, true, !!rememberDevice, expiresAt);
     const fullToken = signToken({ userId: user.id, email: user.email, phone: user.phone, sessionId: sessionToken });
     res.json({ user, token: fullToken });
   } catch (err) {
@@ -226,7 +290,6 @@ router.post('/verify-2fa', async (req, res, next) => {
 
 // GET /api/auth/me (requires auth - returns current user)
 router.get('/me', requireAuth, (req, res) => {
-  console.log(AUTH_LOG, 'GET /me: 200', { userId: req.user?.id, role: req.user?.role });
   res.json({ user: req.user });
 });
 
@@ -236,7 +299,6 @@ router.get('/sessions', requireAuth, async (req, res, next) => {
     const sessions = await db.getAuthSessionsForUser(req.user.id, req.sessionId || null);
     res.json({ sessions });
   } catch (err) {
-    console.error(AUTH_LOG, 'GET /sessions error', err);
     next(err);
   }
 });
@@ -254,7 +316,6 @@ router.delete('/sessions/:id', requireAuth, async (req, res, next) => {
     }
     res.json({ message: 'Session revoked.' });
   } catch (err) {
-    console.error(AUTH_LOG, 'DELETE /sessions/:id error', err);
     next(err);
   }
 });
@@ -272,15 +333,15 @@ router.patch('/sessions/:id/untrust', requireAuth, async (req, res, next) => {
     }
     res.json({ message: 'Device untrusted. Two-factor will be required on next login.' });
   } catch (err) {
-    console.error(AUTH_LOG, 'PATCH /sessions/:id/untrust error', err);
     next(err);
   }
 });
 
 // PATCH /api/auth/me/2fa – enable/disable 2FA and set type (email, phone, totp). For totp, generates secret and returns setup info.
+// When disabling 2FA or changing 2FA type, current_password is required and verified.
 router.patch('/me/2fa', requireAuth, async (req, res, next) => {
   try {
-    const { two_factor_enabled, two_factor_type } = req.body;
+    const { two_factor_enabled, two_factor_type, current_password } = req.body;
     const data = {};
     if (two_factor_enabled !== undefined) data.two_factor_enabled = !!two_factor_enabled;
     let twoFactorType = null;
@@ -291,6 +352,34 @@ router.patch('/me/2fa', requireAuth, async (req, res, next) => {
     if (Object.keys(data).length === 0) {
       const row = await db.findUserById(req.user.id);
       return res.json({ user: db.rowToUser(row) });
+    }
+
+    const isDisabling = data.two_factor_enabled === false;
+    const isChangingType = twoFactorType != null && req.user.two_factor_enabled;
+    if (isDisabling || isChangingType) {
+      if (!current_password || String(current_password).trim() === '') {
+        return res.status(400).json({ error: 'Enter your current password to continue.' });
+      }
+      const row = await db.findUserById(req.user.id);
+      if (!row || !row.password) {
+        return res.status(400).json({ error: 'Password verification is not available for this account.' });
+      }
+      const passwordMatch = await bcrypt.compare(String(current_password).trim(), row.password);
+      if (!passwordMatch) {
+        return res.status(401).json({ error: 'Current password is incorrect.' });
+      }
+    }
+
+    // Require email/phone on account when setting 2FA type to email/phone
+    if (twoFactorType === 'email' && data.two_factor_enabled !== false) {
+      if (!req.user.email || String(req.user.email).trim() === '') {
+        return res.status(400).json({ error: 'Add an email to your account first to use email for 2FA codes.' });
+      }
+    }
+    if (twoFactorType === 'phone' && data.two_factor_enabled !== false) {
+      if (!req.user.phone || String(req.user.phone).trim() === '') {
+        return res.status(400).json({ error: 'Add a phone number to your account first to use phone for 2FA codes.' });
+      }
     }
     let totpSetup = null;
     if (twoFactorType === 'totp' && data.two_factor_enabled !== false) {
@@ -346,7 +435,6 @@ router.post('/profile-photo', requireAuth, profilePhotoUpload.single('photo'), a
     await db.updateProfile(req.user.id, { profile_picture: relativePath });
     const row = await db.findUserById(req.user.id);
     const user = db.rowToUser(row);
-    console.log(AUTH_LOG, 'POST /profile-photo: 200', { userId: user.id });
     res.json({ user });
   } catch (err) {
     next(err);
@@ -423,44 +511,52 @@ router.patch('/account', requireAuth, async (req, res, next) => {
 });
 
 // POST /api/auth/complete-profile (requires auth - full or temp token for new signups)
+// Required: first_name, dob. Optional: last_name, phone, email, profile_picture.
 router.post('/complete-profile', requireAuthOrTemp2FA, async (req, res, next) => {
   try {
-    const { first_name, last_name, dob, phone, profile_picture } = req.body;
-    if (!first_name || !last_name || !dob) {
-      return res.status(400).json({
-        error: 'First name, last name, and date of birth are required',
-      });
+    const { first_name, last_name, dob, phone, email, profile_picture } = req.body;
+    if (!first_name || String(first_name).trim() === '') {
+      return res.status(400).json({ error: 'First name is required' });
+    }
+    if (!dob || String(dob).trim() === '') {
+      return res.status(400).json({ error: 'Date of birth is required' });
     }
     const data = {
       first_name: String(first_name).trim(),
-      last_name: String(last_name).trim(),
-      dob: dob,
-      phone: phone != null ? normalizePhone(String(phone)) || String(phone).trim() : undefined,
-      profile_picture:
-        profile_picture != null && String(profile_picture).trim() !== ''
-          ? String(profile_picture).trim()
-          : undefined,
+      dob: normalizeDob(dob),
     };
+    if (last_name !== undefined) data.last_name = String(last_name).trim();
+    if (phone != null && String(phone).trim() !== '') {
+      const normalized = normalizePhone(String(phone));
+      data.phone = normalized || String(phone).trim();
+    }
+    if (email != null && String(email).trim() !== '') {
+      data.email = String(email).trim();
+    }
+    if (profile_picture != null && String(profile_picture).trim() !== '') {
+      data.profile_picture = String(profile_picture).trim();
+    }
+    if (data.email) {
+      const existing = await db.findUserByEmail(data.email);
+      if (existing && existing.id !== req.user.id) {
+        return res.status(409).json({ error: 'An account with this email already exists.' });
+      }
+    }
+    if (data.phone) {
+      const normalized = normalizePhone(data.phone);
+      if (normalized && normalized.length >= 10) {
+        const existing = await db.findUserByPhone(normalized);
+        if (existing && existing.id !== req.user.id) {
+          return res.status(409).json({ error: 'An account with this phone number already exists.' });
+        }
+        data.phone = normalized;
+      }
+    }
     await db.updateProfile(req.user.id, data);
     const row = await db.findUserById(req.user.id);
     const user = db.rowToUser(row);
 
-    // If 2FA enabled, send OTP and return temp token so frontend can redirect to verify-2fa
-    if (user.two_factor_enabled) {
-      const otp = String(Math.floor(100000 + Math.random() * 900000));
-      const expiresAt = new Date(Date.now() + OTP_EXPIRY_MS);
-      await db.setOtp(row.id, otp, expiresAt);
-      if (user.two_factor_type === 'email' && user.email) {
-        await sendOtpEmail(user.email, otp);
-      }
-      if (user.two_factor_type === 'phone') {
-        console.log('[dev] OTP for', user.phone, ':', otp);
-      }
-      const tempToken = signTempToken({ userId: user.id });
-      return res.json({ requires2FA: true, tempToken, user });
-    }
-
-    // Otherwise issue full token (e.g. if they had temp token from register)
+    // If request used a temp token (e.g. skipped 2FA at signup), issue full token; otherwise just return user.
     const token = req.isTemp2FA
       ? signToken({ userId: user.id, email: user.email, phone: user.phone })
       : undefined;

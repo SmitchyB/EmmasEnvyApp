@@ -5,6 +5,29 @@ import { API_BASE } from '@/constants/config';
 
 const API_LOG = '[API]';
 
+/** Build full API URL for a path (e.g. /api/auth/me). */
+export function apiUrl(path: string): string {
+  const base = API_BASE.replace(/\/$/, '');
+  const p = path.startsWith('/') ? path : `/${path}`;
+  return `${base}${p}`;
+}
+
+/**
+ * Fetch with optional auth. When token is provided, adds Authorization: Bearer <token>.
+ * Use for authenticated endpoints. Get token from useAuth().token or pass when available.
+ */
+export async function fetchWithAuth(
+  url: string,
+  options: RequestInit = {},
+  token: string | null | undefined
+): Promise<Response> {
+  const headers = new Headers(options.headers);
+  if (token) {
+    headers.set('Authorization', `Bearer ${token}`);
+  }
+  return fetch(url, { ...options, headers });
+}
+
 export interface SiteSettings {
   products_enabled: boolean;
   rewards_enabled: boolean;

@@ -14,7 +14,6 @@ function rowToUser(row) {
   if (!row) return null; // If the row is not found, return null
   const user = {
     id: row.id, // Set the id of the user
-    google_id: row.google_id, // Set the google id of the user
     first_name: row.first_name, // Set the first name of the user
     last_name: row.last_name, // Set the last name of the user
     dob: row.dob, // Set the date of birth of the user
@@ -61,15 +60,6 @@ async function findUserByPhone(phone) {
   );
   return result.rows[0] || null;
 }
- 
-// Define the findUserByGoogleId function that queries the users table for the user with the given google id
-async function findUserByGoogleId(googleId) {
-  const result = await pool.query(
-    'SELECT * FROM ' + USERS_TABLE + ' WHERE google_id = $1',
-    [googleId]
-  );
-  return result.rows[0] || null;
-}
 
 /**
  * Insert a new user. Returns the inserted row.
@@ -79,15 +69,14 @@ async function insertUser(data) {
   const now = new Date();
   const result = await pool.query(
     `INSERT INTO ${USERS_TABLE} (
-      google_id, first_name, last_name, dob, phone, profile_picture,
-      email, password, role, two_factor_type, two_factor_enabled,
-      otp, otp_expires, ignore_2fa_devices, skip_sign_in_devices,
+      first_name, last_name, dob, phone, profile_picture,
+      email, password, role, two_factor_type, two_factor_enabled, two_factor_secret,
+      otp, otp_expires,
       status, last_login, created_at, updated_at
     ) VALUES (
-      $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19
+      $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17
     ) RETURNING *`,
     [
-      data.google_id ?? null,
       data.first_name ?? null,
       data.last_name ?? null,
       data.dob ?? null,
@@ -98,10 +87,9 @@ async function insertUser(data) {
       data.role ?? 'customer',
       data.two_factor_type ?? null,
       data.two_factor_enabled ?? false,
+      data.two_factor_secret ?? null,
       data.otp ?? null,
       data.otp_expires ?? null,
-      data.ignore_2fa_devices ?? [],
-      data.skip_sign_in_devices ?? [],
       data.status ?? 'active',
       data.last_login ?? null,
       now,
@@ -547,7 +535,6 @@ module.exports = {
   findUserById,
   findUserByEmail,
   findUserByPhone,
-  findUserByGoogleId,
   insertUser,
   updateLastLogin,
   setOtp,
