@@ -108,7 +108,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     []
   );
 
-  // Restore Effect - Restore the session from the async storage when the component mounts
+  // Restore Effect - Restore the session from the async storage when the component mounts  
   useEffect(() => {
     // Set the cancelled flag to false to prevent the effect from running multiple times
     let cancelled = false;

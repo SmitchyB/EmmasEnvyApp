@@ -615,7 +615,13 @@ const styles = StyleSheet.create({
   addressCard: { backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 10, padding: 14, marginBottom: 10 },
   addressSummary: { color: NavbarColors.text, fontSize: 14, marginBottom: 8 },
   addressActions: { flexDirection: 'row', gap: 10 },
-  smallButton: { paddingVertical: 8, paddingHorizontal: 16, backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: 8 },
+  smallButton: {
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    borderRadius: 8,
+    flexShrink: 1,
+  },
   smallButtonText: { color: NavbarColors.text, fontSize: 14 },
   dangerSmall: { backgroundColor: 'rgba(200,80,80,0.4)' },
   formBlock: { backgroundColor: 'rgba(0,0,0,0.2)', borderRadius: 10, padding: 16, marginBottom: 16 },
@@ -625,5 +631,5 @@ const styles = StyleSheet.create({
   sessionCard: { backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 10, padding: 14, marginBottom: 10 },
   sessionDevice: { color: NavbarColors.text, fontSize: 15, fontWeight: '500' },
   trustedBadge: { color: GradientColors.pinkLight, fontSize: 12, marginTop: 4 },
-  sessionActions: { flexDirection: 'row', gap: 10, marginTop: 8 },
+  sessionActions: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 8 },
 });
