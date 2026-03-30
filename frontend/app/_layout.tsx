@@ -8,10 +8,8 @@ import { Header } from '@/components/header'; // Import the Header component fro
 import { GradientColors } from '@/constants/theme'; // Import the GradientColors from @/constants/theme for the gradient colors
 import { AuthProvider } from '@/contexts/AuthContext'; // Import the AuthProvider from @/contexts/AuthContext for the authentication
 
-// Summary of changes for Week 2 submission: 
-// Wrapped the app in the auth provider so that the authentication state is shared across the app.
-// added signup-2fa-choice, complete-profile, and verify-2fa screens. 
-// Also added an animation: fade to the screens for smoother transitions as i was having issues with changing screens using the buttons on the account page.
+// Summary of changes for Week 3/4 submission: 
+//Added the portfolios screen
 
 // Define the unstable settings for the Expo Router. It uses this to determine navigation behavior/routes.
 export const unstable_settings = {
@@ -58,6 +56,7 @@ export default function RootLayout() {
             <Stack.Screen name="signup-2fa-choice" />
             <Stack.Screen name="complete-profile" />
             <Stack.Screen name="verify-2fa" />
+            <Stack.Screen name="manage-portfolio" />
           </Stack>
         </View>
       </View>

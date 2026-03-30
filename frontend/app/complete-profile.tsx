@@ -48,7 +48,7 @@ export default function CompleteProfileScreen() {
     }
     // Launch the image library async
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images, // Media types options for the image picker
+      mediaTypes: 'images', // Media types options for the image picker
       allowsEditing: true, // Allows editing for the image picker
       aspect: [1, 1], // Aspect for the image picker
       quality: 0.8, // Quality for the image picker

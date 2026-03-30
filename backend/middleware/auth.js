@@ -114,4 +114,16 @@ function requireAdmin(req, res, next) {
   return res.status(403).json({ error: 'Admin access required' });
 }
 
-module.exports = { requireAuth, requireAuthOrTemp2FA, requireAdmin, optionalAuth };
+/**
+ * Require auth and Admin or IT role. Use after requireAuth.
+ */
+function requireAdminOrIT(req, res, next) {
+  const role = req.user && req.user.role ? String(req.user.role).toLowerCase() : '';
+  if (role === 'admin' || role === 'it') {
+    return next();
+  }
+  console.log(AUTH_LOG, 'requireAdminOrIT: 403', { userId: req.user?.id, role: req.user?.role });
+  return res.status(403).json({ error: 'Admin or IT access required' });
+}
+
+module.exports = { requireAuth, requireAuthOrTemp2FA, requireAdmin, requireAdminOrIT, optionalAuth };

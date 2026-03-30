@@ -1,4 +1,4 @@
-/**
+ /**
  * Shared Multer image-upload config. Exports pre-configured instances for profile, products, portfolio, etc.
  */
 
@@ -63,6 +63,12 @@ const portfolioPhotoUpload = createImageUpload({
   getFilename: (req, file) => `portfolio-${req.params.id || '0'}-${Date.now()}${safeExt(file.originalname)}`,
 });
 
+const portfolioMePhotoUpload = createImageUpload({
+  subdir: 'portfolio',
+  maxSize: MAX_IMAGE_SIZE,
+  getFilename: (req, file) => `portfolio-me-${(req.user && req.user.id) || '0'}-${Date.now()}${safeExt(file.originalname)}`,
+});
+
 const finishedPhotoUpload = createImageUpload({
   subdir: 'portfolio',
   maxSize: MAX_IMAGE_SIZE,
@@ -89,6 +95,7 @@ module.exports = {
   profilePhotoUpload,
   productImageUpload,
   portfolioPhotoUpload,
+  portfolioMePhotoUpload,
   finishedPhotoUpload,
   homeHeroUpload,
   supportPhotoUpload,

@@ -22,6 +22,9 @@ import { setSignupDraft } from '@/lib/signup-draft'; // Import the setSignupDraf
 type AuthMode = 'signin' | 'signup'; // Define the AuthMode type as 'signin' or 'signup'
 type IdentifierType = 'email' | 'phone'; // Define the IdentifierType type as 'email' or 'phone'
 
+//Updates Week 3/4 submission: 
+//Added the manage portfolio screen button and role check for role based access to prevent customers from accessing the manage portfolio screen
+
 export default function AccountScreen() { // Define the AccountScreen component
 
   // All the state variables
@@ -173,6 +176,7 @@ export default function AccountScreen() { // Define the AccountScreen component
   if (user) {
     const photoUrl = uploadsUrl(user.profile_picture); // Get the photo url from the uploadsUrl function
     const displayName = [user.first_name, user.last_name].filter(Boolean).join(' ') || user.email || 'Account'; // Get the display name from the user first name, last name, email, or 'Account'
+    const canManagePortfolio = user.role === 'Admin' || user.role === 'IT'; // Set the can manage portfolio to true if the user role is Admin or IT
     //Return the logged in content with the profile card, menu buttons, and sign out button
     return (
       <ScrollView
@@ -191,6 +195,11 @@ export default function AccountScreen() { // Define the AccountScreen component
           {user.email ? <Text style={styles.email}>{user.email}</Text> : null}
           {user.phone ? <Text style={styles.email}>{user.phone}</Text> : null}
         </View>
+        {canManagePortfolio && (
+          <Pressable style={styles.menuButton} onPress={() => router.push('/manage-portfolio')}>
+            <Text style={styles.menuButtonText}>Manage portfolio</Text>
+          </Pressable>
+        )}
         <Pressable style={styles.menuButton} onPress={() => router.push('/settings')}>
           <Text style={styles.menuButtonText}>Settings</Text>
         </Pressable>

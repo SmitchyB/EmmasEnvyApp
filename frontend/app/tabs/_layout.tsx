@@ -7,17 +7,13 @@ import { uploadsUrl } from '@/constants/config'; // Import the uploadsUrl functi
 import { NavbarColors } from '@/constants/theme'; // Import the NavbarColors constant from @/constants/theme for the tabs
 import { useAuth } from '@/contexts/AuthContext'; // Import the useAuth hook from @/contexts/AuthContext for the tabs
 
-//Summary of changes for Week 2 submission:
-//Changed the Sign In/Up and Account Tab functionality to use the users profile picture if available
-//Ensured sizing of the icons are consistent and the profile picture is sized accordingly.
-
 const TAB_ICON_SIZE = 24; //Define the size of the icon for the tabs
 
 /** TabLayout is the layout component for the tabs. It is the layout for the tabs. */
 export default function TabLayout() {
   const { user } = useAuth();
-  const profilePhotoUrl = user?.profile_picture ? uploadsUrl(user.profile_picture) : null;
-
+  const profilePhotoUrl = user?.profile_picture ? uploadsUrl(user.profile_picture) : null; // Get the profile photo url from the user
+  // Return the tabs layout with the screen options
   return (
     <Tabs
       screenOptions={{

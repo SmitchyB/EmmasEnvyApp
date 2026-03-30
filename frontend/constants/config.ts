@@ -6,7 +6,10 @@
 import Constants from 'expo-constants';
 
 const extra = (Constants.expoConfig?.extra ?? {}) as Record<string, string | undefined>;
-const envUrl = typeof process !== 'undefined' && (process as unknown as { env?: Record<string, string> }).env?.EXPO_PUBLIC_API_URL;
+const envUrl =
+  typeof process === 'undefined'
+    ? undefined
+    : (process as unknown as { env?: Record<string, string> }).env?.EXPO_PUBLIC_API_URL;
 
 export const API_BASE = envUrl ?? extra?.EXPO_PUBLIC_API_URL ?? 'http://localhost:3002';
 
