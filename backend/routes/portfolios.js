@@ -66,7 +66,7 @@ router.get('/', async (req, res, next) => {
   }
 });
 
-// GET /api/portfolios/primary – first visible portfolio with photos (must be before /:id)
+// GET /api/portfolios/primary – fixed portfolio id 1 when visible (must be before /:id)
 router.get('/primary', async (req, res, next) => {
   console.log('[Portfolios] GET /primary requested'); // Log the request
   // Try to get the primary portfolio from the database
@@ -76,15 +76,13 @@ router.get('/primary', async (req, res, next) => {
               u.first_name, u.last_name, u.profile_picture
        FROM ${PORTFOLIOS_TABLE} p
        LEFT JOIN ${USERS_TABLE} u ON u.id = p.employee_id
-       WHERE p.visible = true
-       ORDER BY p.id
-       LIMIT 1`
+       WHERE p.id = 1 AND p.visible = true`
     );
     console.log('[Portfolios] GET /primary portfolio rows:', portfolioResult.rowCount); // Log the number of rows in the portfolio result
     const row = portfolioResult.rows[0]; // Set the row to the first row in the portfolio result
     // If the row is not found, return a 404 error
     if (!row) {
-      console.log('[Portfolios] GET /primary no visible portfolio -> 404'); // Log the error
+      console.log('[Portfolios] GET /primary id=1 not visible or missing -> 404'); // Log the error
       return res.status(404).json({ error: 'No visible portfolio found' }); // Return a 404 error
     }
     const portfolio = portfolioRowToJson(row); // Set the portfolio to the portfolio row as a JSON object

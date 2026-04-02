@@ -60,6 +60,27 @@ export async function getPortfolioById(id: number): Promise<{ portfolio: Portfol
   }
   return { portfolio: { ...portfolio, photos: portfolio.photos ?? [] } }; // Return the portfolio from the API as a Promise of the { portfolio: Portfolio & { photos: PortfolioPhoto[] } } type
 }
+// Primary public portfolio (solo artist tab); 404 when none / not visible.
+export async function getPrimaryPortfolio(): Promise<{
+  portfolio: Portfolio & { photos: PortfolioPhoto[] };
+} | null> {
+  const res = await fetch(apiUrl('/api/portfolios/primary'), {
+    method: 'GET',
+    headers: { Accept: 'application/json' },
+  });
+  if (res.status === 404) {
+    return null;
+  }
+  const data = await parseJson<{ portfolio?: Portfolio & { photos?: PortfolioPhoto[] }; error?: string }>(res);
+  if (!res.ok) {
+    throw new Error(data.error || res.statusText);
+  }
+  const portfolio = data.portfolio;
+  if (!portfolio) {
+    return null;
+  }
+  return { portfolio: { ...portfolio, photos: portfolio.photos ?? [] } };
+}
 // Defines the getMyPortfolio function
 export async function getMyPortfolio(
   token: string | null | undefined // The token for the user

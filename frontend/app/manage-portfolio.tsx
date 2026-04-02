@@ -19,8 +19,6 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'; // Import th
 import { uploadsUrl } from '@/constants/config'; // Import the uploadsUrl module from @/constants/config
 import { GradientColors, NavbarColors } from '@/constants/theme'; // Import the GradientColors and NavbarColors modules from @/constants/theme
 import { useAuth } from '@/contexts/AuthContext'; // Import the useAuth module from @/contexts/AuthContext
-import type { User } from '@/lib/auth-types'; // Import the User type from @/lib/auth-types
-import { apiUrl } from '@/lib/api'; // Import the apiUrl module from @/lib/api
 import type { PortfolioPhoto } from '@/lib/portfolio-api'; // Import the PortfolioPhoto type from @/lib/portfolio-api
 import {
   deletePortfolioPhoto,
@@ -35,13 +33,11 @@ export default function ManagePortfolioScreen() {
   // All the state variables
   const insets = useSafeAreaInsets(); // Import the useSafeAreaInsets module from react-native-safe-area-context
   const router = useRouter(); // Import the useRouter module from expo-router
-  const { user, token, setSession, fetchWithAuth } = useAuth();
+  const { user, token } = useAuth();
   const [loading, setLoading] = useState(true); // Import the useState module from react
   const [saving, setSaving] = useState(false); // Import the useState module from react
   const [error, setError] = useState<string | null>(null); // Import the useState module from react
   const [statusMessage, setStatusMessage] = useState<string | null>(null); // Import the useState module from react
-  const [name, setName] = useState(''); // Import the useState module from react
-  const [description, setDescription] = useState(''); // Import the useState module from react
   const [photos, setPhotos] = useState<PortfolioPhoto[]>([]); // Import the useState module from react
   const [visible, setVisible] = useState(false); // Import the useState module from react
   const [uploadingPhoto, setUploadingPhoto] = useState(false); // Import the useState module from react
@@ -56,6 +52,15 @@ export default function ManagePortfolioScreen() {
     if (!user) return false;
     return user.role === 'Admin' || user.role === 'IT'; // Return the user role is Admin or IT
   }, [user]);
+
+  const profileDisplayName = useMemo(() => {
+    if (!user) return '';
+    const parts = [user.first_name, user.last_name].filter(Boolean) as string[];
+    const full = parts.join(' ').trim();
+    return full || user.email?.trim() || 'Your account';
+  }, [user]);
+
+  const profilePhotoUri = user?.profile_picture ? uploadsUrl(user.profile_picture) : null;
 
   // Define the useEffect hook for loading the portfolio
   useEffect(() => {
@@ -76,24 +81,17 @@ export default function ManagePortfolioScreen() {
         if (!portfolio) {
           // No portfolio yet – create an initial hidden portfolio entry so the user can start editing.
           const created = await saveMyPortfolio(token, {
-            description: null,
             visible: false,
           });
-          // If the portfolio is not cancelled, set the name, description, photos, and visible to the created portfolio
           if (!cancelled) {
-            setName(created.portfolio.name ?? ''); // Set the name to the created portfolio name or empty string
-            setDescription(created.portfolio.description ?? ''); // Set the description to the created portfolio description or empty string
-            setPhotos(created.portfolio.photos ?? []); // Set the photos to the created portfolio photos or empty array
-            setVisible(created.portfolio.visible ?? false); // Set the visible to the created portfolio visible or false
+            setPhotos(created.portfolio.photos ?? []);
+            setVisible(created.portfolio.visible ?? false);
           }
-          return; // Return
+          return;
         }
-        // If the portfolio is not cancelled, set the name, description, photos, and visible to the portfolio
         if (!cancelled) {
-          setName(portfolio.name ?? ''); // Set the name to the portfolio name or empty string
-          setDescription(portfolio.description ?? ''); // Set the description to the portfolio description or empty string
-          setPhotos(portfolio.photos ?? []); // Set the photos to the portfolio photos or empty array
-          setVisible(portfolio.visible ?? false); // Set the visible to the portfolio visible or false
+          setPhotos(portfolio.photos ?? []);
+          setVisible(portfolio.visible ?? false);
         }
       }
       // If the portfolio is not found, create a new portfolio
@@ -105,15 +103,11 @@ export default function ManagePortfolioScreen() {
           // Try to create a new portfolio
           try {
             const created = await saveMyPortfolio(token, {
-              description: null, // Set the description to null
-              visible: false, // Set the visible to false
+              visible: false,
             });
-            // If the portfolio is not cancelled, set the name, description, photos, and visible to the created portfolio
             if (!cancelled) {
-              setName(created.portfolio.name ?? ''); // Set the name to the created portfolio name or empty string
-              setDescription(created.portfolio.description ?? ''); // Set the description to the created portfolio description or empty string
-              setPhotos(created.portfolio.photos ?? []); // Set the photos to the created portfolio photos or empty array
-              setVisible(created.portfolio.visible ?? false); // Set the visible to the created portfolio visible or false
+              setPhotos(created.portfolio.photos ?? []);
+              setVisible(created.portfolio.visible ?? false);
             }
           } 
           // If the portfolio is not cancelled, set the error to the create error message
@@ -168,23 +162,11 @@ export default function ManagePortfolioScreen() {
     // Try to save the portfolio
     try {
       const { portfolio } = await saveMyPortfolio(token, {
-        name: name.trim() || null,
-        description: description.trim() || null,
         visible,
       });
-      setName(portfolio.name ?? '');
       setPhotos(portfolio.photos ?? []);
       setVisible(portfolio.visible ?? true);
-      const meRes = await fetchWithAuth(apiUrl('/api/auth/me'), {
-        headers: { Accept: 'application/json' },
-      });
-      if (meRes.ok) {
-        const data = (await meRes.json()) as { user?: User };
-        if (data.user && token) {
-          await setSession(data.user, token);
-        }
-      }
-      setStatusMessage('Portfolio saved');
+      setStatusMessage('Visibility saved');
       clearStatusSoon();
     } 
     // If the portfolio is not saved, set the error to the save error message
@@ -329,34 +311,35 @@ export default function ManagePortfolioScreen() {
         </Pressable>
         <Text style={styles.title}>Manage portfolio</Text>
         <Text style={styles.subtitle}>
-          Edit display name, bio, visibility, and gallery photos.
+          Your name and photo on the public portfolio come from your account profile. Edit those in Account settings. Here you can set visibility and manage gallery photos.
         </Text>
         {error ? <Text style={styles.error}>{error}</Text> : null}
         {statusMessage ? (
           <Text style={styles.status}>{statusMessage}</Text>
         ) : null}
 
-        <Text style={styles.sectionTitle}>Bio</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="Display name"
-          placeholderTextColor={NavbarColors.textMuted}
-          value={name}
-          onChangeText={setName}
-        />
-        <TextInput
-          style={[styles.input, styles.textArea]}
-          placeholder="Bio / description"
-          placeholderTextColor={NavbarColors.textMuted}
-          value={description}
-          onChangeText={setDescription}
-          multiline
-        />
+        <View style={styles.profileRow}>
+          {profilePhotoUri ? (
+            <Image source={{ uri: profilePhotoUri }} style={styles.profileAvatar} />
+          ) : (
+            <View style={styles.profileAvatarPlaceholder}>
+              <Text style={styles.profileAvatarInitial}>
+                {profileDisplayName.charAt(0).toUpperCase()}
+              </Text>
+            </View>
+          )}
+          <View style={styles.profileTextWrap}>
+            <Text style={styles.profileLabel}>Shown as</Text>
+            <Text style={styles.profileName}>{profileDisplayName}</Text>
+          </View>
+        </View>
+
+        <Text style={styles.sectionTitle}>Visibility</Text>
         <View style={styles.toggleRow}>
           <View style={styles.toggleTextWrap}>
-            <Text style={styles.toggleTitle}>Visible on Portfolios tab</Text>
+            <Text style={styles.toggleTitle}>Visible on Portfolio tab</Text>
             <Text style={styles.toggleSubtitle}>
-              {visible ? 'On' : 'Off'} (customers will only see visible portfolios)
+              {visible ? 'On' : 'Off'} (customers only see visible portfolios)
             </Text>
           </View>
           <Switch
@@ -377,7 +360,7 @@ export default function ManagePortfolioScreen() {
           {saving ? (
             <ActivityIndicator color="#fff" size="small" />
           ) : (
-            <Text style={styles.primaryButtonText}>Save portfolio</Text>
+            <Text style={styles.primaryButtonText}>Save visibility</Text>
           )}
         </Pressable>
 
@@ -521,6 +504,44 @@ const styles = StyleSheet.create({
     color: NavbarColors.textMuted,
     fontSize: 14,
     marginBottom: 16,
+    lineHeight: 20,
+  },
+  profileRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+    paddingVertical: 8,
+  },
+  profileAvatar: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    marginRight: 14,
+  },
+  profileAvatarPlaceholder: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    marginRight: 14,
+    backgroundColor: GradientColors.pinkDark,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  profileAvatarInitial: {
+    color: NavbarColors.text,
+    fontSize: 22,
+    fontWeight: '700',
+  },
+  profileTextWrap: { flex: 1, minWidth: 0 },
+  profileLabel: {
+    color: NavbarColors.textMuted,
+    fontSize: 12,
+    marginBottom: 2,
+  },
+  profileName: {
+    color: NavbarColors.text,
+    fontSize: 17,
+    fontWeight: '700',
   },
   backButton: { alignSelf: 'flex-start', marginBottom: 16 },
   backButtonText: { color: NavbarColors.text, fontSize: 16 },
@@ -528,7 +549,7 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '600',
     color: NavbarColors.text,
-    marginTop: 24,
+    marginTop: 20,
     marginBottom: 12,
   },
   error: { color: '#ff6b6b', marginBottom: 8, fontSize: 14 },
@@ -543,10 +564,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: NavbarColors.text,
     marginBottom: 10,
-  },
-  textArea: {
-    minHeight: 80,
-    textAlignVertical: 'top',
   },
   toggleRow: {
     flexDirection: 'row',

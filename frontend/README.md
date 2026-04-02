@@ -1,6 +1,6 @@
 # Emmas Envy (Expo)
 
-Frontend for the Emmas Envy nail salon app (appointments + products).
+Frontend for the Emmas Envy nail salon app.
 
 ## Run the app
 

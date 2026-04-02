@@ -29,7 +29,6 @@ export async function fetchWithAuth(
 }
 
 export interface SiteSettings {
-  products_enabled: boolean;
   rewards_enabled: boolean;
   home_hero_image: string | null;
   hero_title: string | null;
@@ -42,12 +41,7 @@ export interface SiteSettings {
 }
 
 function isSiteSettingsShape(data: unknown): data is SiteSettings {
-  return (
-    data !== null &&
-    typeof data === 'object' &&
-    'products_enabled' in data &&
-    'rewards_enabled' in data
-  );
+  return data !== null && typeof data === 'object' && 'rewards_enabled' in data;
 }
 
 export async function getSiteSettings(): Promise<SiteSettings | null> {

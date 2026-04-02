@@ -7,7 +7,7 @@ import { NavbarColors } from '@/constants/theme';
 const LOGO_HEIGHT = 60;
 const LOGO_WIDTH = 180;
 
-/** Logo-only header; main nav (Home, Portfolios, Products, Sign In/Up) is in the bottom tab bar. */
+/** Logo-only header; main nav (Home, Portfolio, Sign In/Up) is in the bottom tab bar. */
 export function Header() {
   const insets = useSafeAreaInsets(); // Get the insets of the safe area
   const [logoError, setLogoError] = useState(false); // Set the logo error to false
