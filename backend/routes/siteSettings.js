@@ -1,10 +1,11 @@
 /**
  * Site settings: public GET; admin PATCH and home hero upload.
- * GET /api/site-settings – public (products_enabled, rewards_enabled, home hero, five policies).
+ * GET /api/site-settings – public (rewards_enabled, home hero, policies).
  * PATCH /api/site-settings – admin only.
  * POST /api/site-settings/home-hero – admin only, multipart image.
  */
 
+const fs = require('fs');
 const path = require('path');
 const express = require('express');
 const db = require('../lib/db');
@@ -16,7 +17,6 @@ const router = express.Router();
 function rowToPublic(row) {
   if (!row) return null;
   return {
-    products_enabled: row.products_enabled === true,
     rewards_enabled: row.rewards_enabled === true,
     home_hero_image: row.home_hero_image ?? null,
     hero_title: row.hero_title ?? null,
@@ -46,7 +46,6 @@ router.get('/', async (req, res, next) => {
     if (!row) {
       return res.status(503).json({
         error: 'Site settings not available',
-        products_enabled: true,
         rewards_enabled: true,
         home_hero_image: null,
         hero_title: null,
@@ -74,7 +73,6 @@ router.patch('/', requireAuth, requireAdmin, async (req, res, next) => {
     }
     const data = {};
     const allowed = [
-      'products_enabled',
       'rewards_enabled',
       'home_hero_image',
       'hero_title',
@@ -87,7 +85,7 @@ router.patch('/', requireAuth, requireAdmin, async (req, res, next) => {
     ];
     for (const key of allowed) {
       if (body[key] === undefined) continue;
-      if (key === 'products_enabled' || key === 'rewards_enabled') {
+      if (key === 'rewards_enabled') {
         data[key] = !!body[key];
       } else {
         data[key] = body[key] == null ? null : String(body[key]);

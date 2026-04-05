@@ -1,5 +1,5 @@
 /**
- * Reward offerings: admin CRUD + public/checkout "available" list.
+ * Reward offerings: admin CRUD + public list for redemption at payment time.
  * GET /api/reward-offerings – list all (admin)
  * GET /api/reward-offerings/available – active offerings, optional ?points= & ?subtotal=
  * GET /api/reward-offerings/:id – get one (admin)
@@ -16,7 +16,9 @@ const router = express.Router();
 const TABLE = 'emmasenvy.reward_offerings';
 const USERS_TABLE = 'emmasenvy.users';
 
-const REWARD_TYPES = ['percent_off', 'dollar_off', 'free_product'];
+const REWARD_TYPES = ['percent_off', 'dollar_off'];
+
+const ACTIVE_TYPES_SQL = `r.reward_type IN ('percent_off', 'dollar_off')`;
 
 function rowToOffering(row) {
   if (!row) return null;
@@ -26,9 +28,6 @@ function rowToOffering(row) {
     reward_type: row.reward_type,
     point_cost: row.point_cost != null ? parseInt(row.point_cost, 10) : 0,
     value: row.value != null ? Number(row.value) : null,
-    product_id: row.product_id != null ? parseInt(row.product_id, 10) : null,
-    product_title: row.product_title ?? null,
-    product_price: row.product_price != null ? Number(row.product_price) : null,
     min_purchase_amount: row.min_purchase_amount != null ? Number(row.min_purchase_amount) : null,
     is_active: row.is_active === true,
     created_at: row.created_at,
@@ -36,7 +35,7 @@ function rowToOffering(row) {
   };
 }
 
-// GET /api/reward-offerings/customer-eligible?customerId=&subtotal= – for POS: returns { points, reward_offerings } for that customer (auth required)
+// GET /api/reward-offerings/customer-eligible?customerId=&subtotal= – for staff payment UI
 router.get('/customer-eligible', requireAuth, async (req, res, next) => {
   try {
     const customerId = req.query.customerId != null ? parseInt(req.query.customerId, 10) : null;
@@ -50,10 +49,9 @@ router.get('/customer-eligible', requireAuth, async (req, res, next) => {
     );
     const points = userRow.rows[0]?.reward_points != null ? parseInt(userRow.rows[0].reward_points, 10) : 0;
     const result = await db.pool.query(
-      `SELECT r.id, r.title, r.reward_type, r.point_cost, r.value, r.product_id, r.min_purchase_amount, r.is_active, r.created_at, r.updated_at,
-              NULL::text AS product_title, NULL::numeric AS product_price
+      `SELECT r.id, r.title, r.reward_type, r.point_cost, r.value, r.min_purchase_amount, r.is_active, r.created_at, r.updated_at
        FROM ${TABLE} r
-       WHERE r.is_active = true AND r.point_cost <= $1
+       WHERE r.is_active = true AND ${ACTIVE_TYPES_SQL} AND r.point_cost <= $1
        ORDER BY r.point_cost ASC, r.id ASC`,
       [points]
     );
@@ -75,10 +73,9 @@ router.get('/available', async (req, res, next) => {
     const subtotal = req.query.subtotal != null ? parseFloat(req.query.subtotal) : null;
 
     const result = await db.pool.query(
-      `SELECT r.id, r.title, r.reward_type, r.point_cost, r.value, r.product_id, r.min_purchase_amount, r.is_active, r.created_at, r.updated_at,
-              NULL::text AS product_title, NULL::numeric AS product_price
+      `SELECT r.id, r.title, r.reward_type, r.point_cost, r.value, r.min_purchase_amount, r.is_active, r.created_at, r.updated_at
        FROM ${TABLE} r
-       WHERE r.is_active = true
+       WHERE r.is_active = true AND ${ACTIVE_TYPES_SQL}
        ORDER BY r.point_cost ASC, r.id ASC`
     );
     let list = result.rows.map(rowToOffering);
@@ -99,8 +96,7 @@ router.get('/available', async (req, res, next) => {
 router.get('/', requireAuth, requireAdmin, async (req, res, next) => {
   try {
     const result = await db.pool.query(
-      `SELECT r.id, r.title, r.reward_type, r.point_cost, r.value, r.product_id, r.min_purchase_amount, r.is_active, r.created_at, r.updated_at,
-              NULL::text AS product_title, NULL::numeric AS product_price
+      `SELECT r.id, r.title, r.reward_type, r.point_cost, r.value, r.min_purchase_amount, r.is_active, r.created_at, r.updated_at
        FROM ${TABLE} r
        ORDER BY r.created_at DESC, r.id DESC`
     );
@@ -117,8 +113,7 @@ router.get('/:id', requireAuth, requireAdmin, async (req, res, next) => {
     const id = parseInt(req.params.id, 10);
     if (Number.isNaN(id)) return res.status(400).json({ error: 'Invalid id' });
     const result = await db.pool.query(
-      `SELECT r.id, r.title, r.reward_type, r.point_cost, r.value, r.product_id, r.min_purchase_amount, r.is_active, r.created_at, r.updated_at,
-              NULL::text AS product_title, NULL::numeric AS product_price
+      `SELECT r.id, r.title, r.reward_type, r.point_cost, r.value, r.min_purchase_amount, r.is_active, r.created_at, r.updated_at
        FROM ${TABLE} r
        WHERE r.id = $1`,
       [id]
@@ -133,21 +128,17 @@ router.get('/:id', requireAuth, requireAdmin, async (req, res, next) => {
 // POST /api/reward-offerings – create (admin)
 router.post('/', requireAuth, requireAdmin, async (req, res, next) => {
   try {
-    const { title, reward_type, point_cost, value, product_id, min_purchase_amount, is_active } = req.body;
+    const { title, reward_type, point_cost, value, min_purchase_amount, is_active } = req.body;
     const titleStr = (title && String(title).trim()) || '';
     if (!titleStr) return res.status(400).json({ error: 'title is required' });
     const rt = (reward_type && String(reward_type).trim()) || '';
     if (!REWARD_TYPES.includes(rt)) {
-      return res.status(400).json({ error: 'reward_type must be percent_off, dollar_off, or free_product' });
+      return res.status(400).json({ error: 'reward_type must be percent_off or dollar_off' });
     }
     const cost = parseInt(point_cost, 10);
     if (Number.isNaN(cost) || cost <= 0) return res.status(400).json({ error: 'point_cost must be a positive integer' });
 
     let valueNum = null;
-    let productId = null;
-    if (rt === 'free_product') {
-      return res.status(400).json({ error: 'free_product rewards are not available without a product catalog.' });
-    }
     if (rt === 'percent_off' || rt === 'dollar_off') {
       valueNum = value != null ? parseFloat(value) : null;
       if (valueNum == null || Number.isNaN(valueNum) || valueNum <= 0) {
@@ -165,14 +156,13 @@ router.post('/', requireAuth, requireAdmin, async (req, res, next) => {
     const now = new Date();
 
     const result = await db.pool.query(
-      `INSERT INTO ${TABLE} (title, reward_type, point_cost, value, product_id, min_purchase_amount, is_active, created_at, updated_at)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $8)
-       RETURNING id, title, reward_type, point_cost, value, product_id, min_purchase_amount, is_active, created_at, updated_at`,
-      [titleStr, rt, cost, valueNum, productId, minPurchase, active, now]
+      `INSERT INTO ${TABLE} (title, reward_type, point_cost, value, min_purchase_amount, is_active, created_at, updated_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $7)
+       RETURNING id, title, reward_type, point_cost, value, min_purchase_amount, is_active, created_at, updated_at`,
+      [titleStr, rt, cost, valueNum, minPurchase, active, now]
     );
     const row = result.rows[0];
-    const out = rowToOffering({ ...row, product_title: null });
-    return res.status(201).json({ reward_offering: out });
+    return res.status(201).json({ reward_offering: rowToOffering(row) });
   } catch (err) {
     console.error('[rewardOfferings] POST / error', err);
     return next(err);
@@ -184,7 +174,7 @@ router.patch('/:id', requireAuth, requireAdmin, async (req, res, next) => {
   try {
     const id = parseInt(req.params.id, 10);
     if (Number.isNaN(id)) return res.status(400).json({ error: 'Invalid id' });
-    const { title, reward_type, point_cost, value, product_id, min_purchase_amount, is_active } = req.body;
+    const { title, reward_type, point_cost, value, min_purchase_amount, is_active } = req.body;
 
     const updates = [];
     const values = [];
@@ -198,9 +188,6 @@ router.patch('/:id', requireAuth, requireAdmin, async (req, res, next) => {
     if (reward_type !== undefined) {
       const rt = String(reward_type).trim();
       if (!REWARD_TYPES.includes(rt)) return res.status(400).json({ error: 'Invalid reward_type' });
-      if (rt === 'free_product') {
-        return res.status(400).json({ error: 'free_product rewards are not available without a product catalog.' });
-      }
       updates.push(`reward_type = $${idx++}`);
       values.push(rt);
     }
@@ -217,14 +204,6 @@ router.patch('/:id', requireAuth, requireAdmin, async (req, res, next) => {
       }
       updates.push(`value = $${idx++}`);
       values.push(valueNum);
-    }
-    if (product_id !== undefined) {
-      const productId = product_id === null || product_id === '' ? null : parseInt(product_id, 10);
-      if (product_id !== null && product_id !== '' && Number.isNaN(productId)) {
-        return res.status(400).json({ error: 'product_id must be an integer' });
-      }
-      updates.push(`product_id = $${idx++}`);
-      values.push(productId);
     }
     if (min_purchase_amount !== undefined) {
       const minPurchase = min_purchase_amount === null || min_purchase_amount === '' ? null : parseFloat(min_purchase_amount);
@@ -244,13 +223,11 @@ router.patch('/:id', requireAuth, requireAdmin, async (req, res, next) => {
     values.push(id);
     const result = await db.pool.query(
       `UPDATE ${TABLE} SET ${updates.join(', ')} WHERE id = $${idx}
-       RETURNING id, title, reward_type, point_cost, value, product_id, min_purchase_amount, is_active, created_at, updated_at`,
+       RETURNING id, title, reward_type, point_cost, value, min_purchase_amount, is_active, created_at, updated_at`,
       values
     );
     if (result.rows.length === 0) return res.status(404).json({ error: 'Reward offering not found' });
-    const row = result.rows[0];
-    const out = rowToOffering({ ...row, product_title: null });
-    return res.json({ reward_offering: out });
+    return res.json({ reward_offering: rowToOffering(result.rows[0]) });
   } catch (err) {
     return next(err);
   }

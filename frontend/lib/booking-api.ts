@@ -317,28 +317,3 @@ export async function deleteServiceTypeApi(token: string, id: number): Promise<v
   if (!res.ok) throw new Error(await readError(res)); // If the response is not ok, throw an error
   if (res.status !== 204) await res.text().catch(() => {}); // Drain body when server returns JSON message on success
 }
-
-// Function to finalize POS checkout for an appointment (empty product lines, totals only)
-export async function checkoutAppointment(
-  token: string, // Token for the checkoutAppointment function
-  appointmentId: number, // Appointment ID for the checkoutAppointment function
-  totalAmount: number, // Total amount for the checkoutAppointment function
-  paymentMethod: 'cash' | 'card' = 'cash', // Payment method for the checkoutAppointment function
-): Promise<void> {
-  // Fetch the checkout appointment endpoint
-  const res = await fetchWithAuth(
-    apiUrl('/api/pos/checkout'), // API URL for the checkout appointment endpoint
-    {
-      method: 'POST', // POST request to the checkout appointment endpoint
-      headers: { Accept: 'application/json', 'Content-Type': 'application/json' }, // Headers for the request
-      body: JSON.stringify({
-        appointmentId, // Appointment ID
-        productLines: [], // Service-only checkout
-        totals: { total: totalAmount }, // Grand total passed from UI
-        paymentMethod,
-      }),
-    },
-    token // Token for the checkoutAppointment function
-  );
-  if (!res.ok) throw new Error(await readError(res)); // If the response is not ok, throw an error
-}

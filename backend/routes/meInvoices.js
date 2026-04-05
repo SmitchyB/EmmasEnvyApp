@@ -4,7 +4,7 @@ const { requireAuth } = require('../middleware/auth'); // Import the requireAuth
 
 const router = express.Router(); // Create a router for /api/me/* invoice and reward routes
 const INVOICES_TABLE = 'emmasenvy.invoices'; // Qualified invoices table name
-const REWARD_OFFERINGS_TABLE = 'emmasenvy.reward_offerings'; // Reward catalog table for join titles
+const REWARD_OFFERINGS_TABLE = 'emmasenvy.reward_offerings'; // Join for reward titles on invoices
 
 // GET /api/me/rewards – points and reward redemption history (invoices where user spent points)
 router.get('/rewards', requireAuth, async (req, res, next) => {
@@ -93,7 +93,7 @@ router.get('/invoices/:id', requireAuth, async (req, res, next) => {
             title: serviceLabel || 'Service', // Display name for the line
             price: Number(row.total_amount), // Line price equals invoice total for single-line invoices
             quantity: 1, // Single service line
-            image: null, // No product image for appointment invoices
+            image: null,
             selected_variant: null, // Not used for appointments
           },
         ]

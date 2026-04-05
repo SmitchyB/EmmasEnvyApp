@@ -76,7 +76,7 @@ async function requireAuthOrTemp2FA(req, res, next) {
 
 /**
  * Optional auth: if Bearer token present and valid, set req.user; otherwise set req.user = null (no 401).
- * Use for public endpoints that behave differently when logged in (e.g. checkout).
+ * Use for public endpoints that behave differently when logged in.
  */
 async function optionalAuth(req, res, next) {
   try {

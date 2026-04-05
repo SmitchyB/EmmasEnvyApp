@@ -23,10 +23,8 @@ import { useAuth } from '@/contexts/AuthContext'; // Import the useAuth module f
 import { useBookingData } from '@/contexts/BookingDataContext'; // Import the useBookingData module from the contexts/BookingDataContext file
 import {
   cancelAppointmentApi, // Import the cancelAppointmentApi module from the booking-api file
-  checkoutAppointment, // Import the checkoutAppointment module from the booking-api file
   fetchAppointmentAvailability, // Import the fetchAppointmentAvailability module from the booking-api file
   fetchPublicServiceTypes, // Import the fetchPublicServiceTypes module from the booking-api file
-  getAppointment, // Import the getAppointment module from the booking-api file
   updateAppointment, // Import the updateAppointment module from the booking-api file
   afterPhotoFilePart, // Import the afterPhotoFilePart module from the booking-api file
   uploadAppointmentFinishedPhoto, // Import the uploadAppointmentFinishedPhoto module from the booking-api file
@@ -573,16 +571,8 @@ export default function AppointmentsTabScreen() {
                 !isPaidAppointment(detail) ? (
                   <Pressable
                     style={styles.action}
-                    onPress={async () => {
-                      const total = detail.invoice_total_amount ?? 0;
-                      try {
-                        await checkoutAppointment(token, detail.id, total, 'cash');
-                        await refreshAppointments();
-                        const u = await getAppointment(token, detail.id);
-                        setDetail(u);
-                      } catch (e) {
-                        Alert.alert('Pay failed', e instanceof Error ? e.message : 'Try again.');
-                      }
+                    onPress={() => {
+                      Alert.alert('Feature coming soon', 'Recording payment from the app will be available in a future update.');
                     }}>
                     <Text style={styles.actionText}>Pay</Text>
                   </Pressable>

@@ -166,120 +166,6 @@ async function updateUser2FA(userId, data) {
   );
 }
 
-// --- Cart (logged-in users) – uses existing users_cart table ---
-const USERS_CART_TABLE = 'emmasenvy.users_cart';
-const CART_ITEM_TYPE = 'product';
-
-function selectedVariantToJsonb(variantId) {
-  if (variantId == null) return null;
-  return JSON.stringify({ id: Number(variantId) });
-}
-
-function variantIdFromJsonb(selectedVariant) {
-  if (selectedVariant == null) return undefined;
-  try {
-    const o = typeof selectedVariant === 'string' ? JSON.parse(selectedVariant) : selectedVariant;
-    return o?.id != null ? Number(o.id) : undefined;
-  } catch {
-    return undefined;
-  }
-}
-
-/**
- * Get cart for user from users_cart.
- * @returns {Promise<Array<{ productId: number, variantId?: number, quantity: number, title: string, price: number, image?: string }>>}
- */
-async function getCartByUserId(userId) {
-  const result = await pool.query(
-    `SELECT id, user_id, product_id, title, image, type, price, quantity, selected_variant
-     FROM ${USERS_CART_TABLE}
-     WHERE user_id = $1
-     ORDER BY id`,
-    [userId]
-  );
-  return result.rows.map((row) => ({
-    productId: row.product_id,
-    variantId: variantIdFromJsonb(row.selected_variant),
-    quantity: Number(row.quantity),
-    title: row.title,
-    price: Number(row.price),
-    image: row.image ?? undefined,
-  }));
-}
-
-/**
- * Add or increment cart line. Uses users_cart (title, image, type, price, quantity, selected_variant).
- */
-async function addCartItem(userId, productId, variantId, quantity = 1, opts = {}) {
-  const { title = '', price = 0, image = null } = opts;
-  const variantJson = selectedVariantToJsonb(variantId ?? null);
-  const existing = await pool.query(
-    `SELECT id, quantity FROM ${USERS_CART_TABLE}
-     WHERE user_id = $1 AND product_id = $2
-       AND (selected_variant IS NOT DISTINCT FROM $3::jsonb)`,
-    [userId, productId, variantJson]
-  );
-  if (existing.rows.length > 0) {
-    await pool.query(
-      `UPDATE ${USERS_CART_TABLE} SET quantity = quantity + $1 WHERE id = $2`,
-      [quantity, existing.rows[0].id]
-    );
-  } else {
-    await pool.query(
-      `INSERT INTO ${USERS_CART_TABLE} (user_id, product_id, title, image, type, price, quantity, selected_variant)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8::jsonb)`,
-      [userId, productId, title, image, CART_ITEM_TYPE, price, quantity, variantJson]
-    );
-  }
-}
-
-/**
- * Merge guest cart items into user cart.
- * @param {number} userId
- * @param {Array<{ productId: number, variantId?: number, quantity: number, title?: string, price?: number, image?: string }>} items
- */
-async function mergeCartItems(userId, items) {
-  if (!items || items.length === 0) return;
-  for (const it of items) {
-    const qty = Math.max(1, Math.min(999, Number(it.quantity) || 1));
-    await addCartItem(userId, it.productId, it.variantId, qty, {
-      title: it.title ?? '',
-      price: it.price ?? 0,
-      image: it.image ?? null,
-    });
-  }
-}
-
-/**
- * Remove one line from cart (match by product_id and selected_variant).
- */
-async function removeCartItem(userId, productId, variantId) {
-  const variantJson = selectedVariantToJsonb(variantId ?? null);
-  await pool.query(
-    `DELETE FROM ${USERS_CART_TABLE}
-     WHERE user_id = $1 AND product_id = $2
-       AND (selected_variant IS NOT DISTINCT FROM $3::jsonb)`,
-    [userId, productId, variantJson]
-  );
-}
-
-/**
- * Set quantity for one line. If quantity <= 0, remove the line.
- */
-async function setCartItemQuantity(userId, productId, variantId, quantity) {
-  if (quantity <= 0) {
-    await removeCartItem(userId, productId, variantId);
-    return;
-  }
-  const variantJson = selectedVariantToJsonb(variantId ?? null);
-  await pool.query(
-    `UPDATE ${USERS_CART_TABLE} SET quantity = $4
-     WHERE user_id = $1 AND product_id = $2
-       AND (selected_variant IS NOT DISTINCT FROM $3::jsonb)`,
-    [userId, productId, variantJson, quantity]
-  );
-}
-
 const SITE_SETTINGS_TABLE = 'emmasenvy.site_settings'; // Define the site settings table
 
 /**
@@ -287,8 +173,8 @@ const SITE_SETTINGS_TABLE = 'emmasenvy.site_settings'; // Define the site settin
  */
 async function ensureSiteSettingsRow() {
   await pool.query(
-    `INSERT INTO ${SITE_SETTINGS_TABLE} (id, products_enabled, rewards_enabled, updated_at)
-     VALUES (1, true, true, NOW())
+    `INSERT INTO ${SITE_SETTINGS_TABLE} (id, rewards_enabled, updated_at)
+     VALUES (1, true, NOW())
      ON CONFLICT (id) DO NOTHING`
   );
 }
@@ -308,7 +194,6 @@ async function getSiteSettings() {
  */
 async function updateSiteSettings(data) {
   const allowed = [
-    'products_enabled',
     'rewards_enabled',
     'home_hero_image',
     'hero_title',
@@ -541,11 +426,6 @@ module.exports = {
   clearOtp,
   updateProfile,
   updateUser2FA,
-  getCartByUserId,
-  addCartItem,
-  mergeCartItems,
-  removeCartItem,
-  setCartItemQuantity,
   ensureSiteSettingsRow,
   getSiteSettings,
   updateSiteSettings,

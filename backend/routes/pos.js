@@ -11,8 +11,8 @@ const REWARD_OFFERINGS_TABLE = 'emmasenvy.reward_offerings';
 
 const router = express.Router();
 
-// POST /api/pos/checkout – complete sale: update or create invoice, set total and payment
-router.post('/checkout', requireAuth, async (req, res, next) => {
+// POST /api/pos/record-payment – staff: mark appointment paid (invoice totals + payment method)
+router.post('/record-payment', requireAuth, async (req, res, next) => {
   try {
     const body = req.body || {};
     const appointmentId = body.appointmentId != null ? parseInt(body.appointmentId, 10) : null;
@@ -109,9 +109,9 @@ router.post('/checkout', requireAuth, async (req, res, next) => {
       return res.json({ success: true, invoiceId });
     }
 
-    return res.status(400).json({ error: 'appointmentId is required (walk-in product sales are no longer supported).' });
+    return res.status(400).json({ error: 'appointmentId is required.' });
   } catch (err) {
-    console.error('[POS] POST /checkout error', err);
+    console.error('[POS] POST /record-payment error', err);
     return next(err);
   }
 });
