@@ -14,7 +14,6 @@ const { requireAuth, requireAdmin } = require('../middleware/auth');
 
 const router = express.Router();
 const TABLE = 'emmasenvy.reward_offerings';
-const PRODUCTS_TABLE = 'emmasenvy.products';
 const USERS_TABLE = 'emmasenvy.users';
 
 const REWARD_TYPES = ['percent_off', 'dollar_off', 'free_product'];
@@ -52,9 +51,8 @@ router.get('/customer-eligible', requireAuth, async (req, res, next) => {
     const points = userRow.rows[0]?.reward_points != null ? parseInt(userRow.rows[0].reward_points, 10) : 0;
     const result = await db.pool.query(
       `SELECT r.id, r.title, r.reward_type, r.point_cost, r.value, r.product_id, r.min_purchase_amount, r.is_active, r.created_at, r.updated_at,
-              p.title AS product_title, p.price AS product_price
+              NULL::text AS product_title, NULL::numeric AS product_price
        FROM ${TABLE} r
-       LEFT JOIN ${PRODUCTS_TABLE} p ON p.id = r.product_id
        WHERE r.is_active = true AND r.point_cost <= $1
        ORDER BY r.point_cost ASC, r.id ASC`,
       [points]
@@ -78,9 +76,8 @@ router.get('/available', async (req, res, next) => {
 
     const result = await db.pool.query(
       `SELECT r.id, r.title, r.reward_type, r.point_cost, r.value, r.product_id, r.min_purchase_amount, r.is_active, r.created_at, r.updated_at,
-              p.title AS product_title, p.price AS product_price
+              NULL::text AS product_title, NULL::numeric AS product_price
        FROM ${TABLE} r
-       LEFT JOIN ${PRODUCTS_TABLE} p ON p.id = r.product_id
        WHERE r.is_active = true
        ORDER BY r.point_cost ASC, r.id ASC`
     );
@@ -103,9 +100,8 @@ router.get('/', requireAuth, requireAdmin, async (req, res, next) => {
   try {
     const result = await db.pool.query(
       `SELECT r.id, r.title, r.reward_type, r.point_cost, r.value, r.product_id, r.min_purchase_amount, r.is_active, r.created_at, r.updated_at,
-              p.title AS product_title, p.price AS product_price
+              NULL::text AS product_title, NULL::numeric AS product_price
        FROM ${TABLE} r
-       LEFT JOIN ${PRODUCTS_TABLE} p ON p.id = r.product_id
        ORDER BY r.created_at DESC, r.id DESC`
     );
     const reward_offerings = result.rows.map(rowToOffering);
@@ -122,9 +118,8 @@ router.get('/:id', requireAuth, requireAdmin, async (req, res, next) => {
     if (Number.isNaN(id)) return res.status(400).json({ error: 'Invalid id' });
     const result = await db.pool.query(
       `SELECT r.id, r.title, r.reward_type, r.point_cost, r.value, r.product_id, r.min_purchase_amount, r.is_active, r.created_at, r.updated_at,
-              p.title AS product_title, p.price AS product_price
+              NULL::text AS product_title, NULL::numeric AS product_price
        FROM ${TABLE} r
-       LEFT JOIN ${PRODUCTS_TABLE} p ON p.id = r.product_id
        WHERE r.id = $1`,
       [id]
     );
@@ -150,6 +145,9 @@ router.post('/', requireAuth, requireAdmin, async (req, res, next) => {
 
     let valueNum = null;
     let productId = null;
+    if (rt === 'free_product') {
+      return res.status(400).json({ error: 'free_product rewards are not available without a product catalog.' });
+    }
     if (rt === 'percent_off' || rt === 'dollar_off') {
       valueNum = value != null ? parseFloat(value) : null;
       if (valueNum == null || Number.isNaN(valueNum) || valueNum <= 0) {
@@ -157,11 +155,6 @@ router.post('/', requireAuth, requireAdmin, async (req, res, next) => {
       }
       if (rt === 'percent_off' && valueNum > 100) {
         return res.status(400).json({ error: 'value cannot exceed 100 for percent_off' });
-      }
-    } else {
-      productId = product_id != null && product_id !== '' ? parseInt(product_id, 10) : null;
-      if (productId == null || Number.isNaN(productId)) {
-        return res.status(400).json({ error: 'product_id is required for free_product' });
       }
     }
     const minPurchase = min_purchase_amount != null && min_purchase_amount !== '' ? parseFloat(min_purchase_amount) : null;
@@ -178,8 +171,7 @@ router.post('/', requireAuth, requireAdmin, async (req, res, next) => {
       [titleStr, rt, cost, valueNum, productId, minPurchase, active, now]
     );
     const row = result.rows[0];
-    const productResult = productId ? await db.pool.query(`SELECT title FROM ${PRODUCTS_TABLE} WHERE id = $1`, [productId]) : { rows: [] };
-    const out = rowToOffering({ ...row, product_title: productResult.rows[0]?.title ?? null });
+    const out = rowToOffering({ ...row, product_title: null });
     return res.status(201).json({ reward_offering: out });
   } catch (err) {
     console.error('[rewardOfferings] POST / error', err);
@@ -206,6 +198,9 @@ router.patch('/:id', requireAuth, requireAdmin, async (req, res, next) => {
     if (reward_type !== undefined) {
       const rt = String(reward_type).trim();
       if (!REWARD_TYPES.includes(rt)) return res.status(400).json({ error: 'Invalid reward_type' });
+      if (rt === 'free_product') {
+        return res.status(400).json({ error: 'free_product rewards are not available without a product catalog.' });
+      }
       updates.push(`reward_type = $${idx++}`);
       values.push(rt);
     }
@@ -254,8 +249,7 @@ router.patch('/:id', requireAuth, requireAdmin, async (req, res, next) => {
     );
     if (result.rows.length === 0) return res.status(404).json({ error: 'Reward offering not found' });
     const row = result.rows[0];
-    const productResult = row.product_id ? await db.pool.query(`SELECT title FROM ${PRODUCTS_TABLE} WHERE id = $1`, [row.product_id]) : { rows: [] };
-    const out = rowToOffering({ ...row, product_title: productResult.rows[0]?.title ?? null });
+    const out = rowToOffering({ ...row, product_title: null });
     return res.json({ reward_offering: out });
   } catch (err) {
     return next(err);

@@ -1,10 +1,10 @@
 import { useFocusEffect } from '@react-navigation/native'; // Import the useFocusEffect hook from the react-navigation library
-import React, { useCallback, useState } from 'react';
+import { Image } from 'expo-image';
+import React, { useCallback, useRef, useState } from 'react';
 import {
   ActivityIndicator, // Import the ActivityIndicator module from the react-native library
   Animated, // Import the Animated module from the react-native library
   Dimensions, // Import the Dimensions module from the react-native library
-  Image, // Import the Image module from the react-native library
   Modal, // Import the Modal module from the react-native library
   Pressable, // Import the Pressable module from the react-native library
   ScrollView, // Import the ScrollView module from the react-native library
@@ -13,14 +13,19 @@ import {
   TouchableOpacity, // Import the TouchableOpacity module from the react-native library
   View, // Import the View module from the react-native library
 } from 'react-native';
+import { useRouter } from 'expo-router'; // Book now → appointment flow
 import { useSafeAreaInsets } from 'react-native-safe-area-context'; // Import the useSafeAreaInsets hook from the react-native-safe-area-context library
 import { uploadsUrl } from '@/constants/config'; // Import the uploadsUrl function from the constants/config file
 import { GradientColors, NavbarColors } from '@/constants/theme'; // Import the GradientColors and NavbarColors from the constants/theme file
-import type { Portfolio, PortfolioPhoto } from '@/lib/portfolio-api';
-import { getPrimaryPortfolio } from '@/lib/portfolio-api';
+import type { Portfolio, PortfolioPhoto } from '@/lib/portfolio-api'; // Import the Portfolio and PortfolioPhoto types from the portfolio-api file
+import { getPrimaryPortfolio } from '@/lib/portfolio-api'; // Import the getPrimaryPortfolio function from the portfolio-api file
 import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler'; // Import Gesture API so pinch and swipe share one native orchestrator
 
-type PortfolioWithPhotos = Portfolio & { photos: PortfolioPhoto[] };
+
+//Changes for week 5: change the portfolio page to display only the primary portfolio. Also fixed some lagging issues.
+
+
+type PortfolioWithPhotos = Portfolio & { photos: PortfolioPhoto[] }; // Define the PortfolioWithPhotos type
 
 // Define the SelectedPhotoState type
 type SelectedPhotoState = {
@@ -31,53 +36,69 @@ type SelectedPhotoState = {
 
 // Define the PortfoliosScreen component
 export default function PortfoliosScreen() {
+  const router = useRouter(); // Import the useRouter module from the expo-router library
   const insets = useSafeAreaInsets(); // Get the safe area insets
   const [loading, setLoading] = useState(true); // Set the loading state to true
   const [error, setError] = useState<string | null>(null); // Set the error state to null
   const [portfolio, setPortfolio] = useState<PortfolioWithPhotos | null>(null); // Primary portfolio with photos
-  const [selectedPhoto, setSelectedPhoto] = useState<SelectedPhotoState>(null); // Set the selected photo state to null
+  const [selectedPhoto, setSelectedPhoto] = useState<SelectedPhotoState>(null); // Set the selected photo state to null 
+  const portfolioRef = useRef<PortfolioWithPhotos | null>(null); // Set the portfolio ref state to null
+  portfolioRef.current = portfolio; // Set the portfolio ref state to the portfolio state
 
-  const loadPortfolio = useCallback(async () => {
-    setLoading(true);
-    setError(null);
+  const loadPortfolio = useCallback(async (opts?: { silent?: boolean }) => {
+    const silent = opts?.silent === true; // Set the silent state to the opts state if the opts state is true
+    // If the silent state is false, set the loading state to true  
+    if (!silent) {
+      setLoading(true); // Set the loading state to true
+    }
+    setError(null); // Set the error state to null
+    // Try to get the primary portfolio
     try {
-      const result = await getPrimaryPortfolio();
-      setPortfolio(result?.portfolio ?? null);
-      setSelectedPhoto(null);
+      const result = await getPrimaryPortfolio(); // Get the primary portfolio
+      setPortfolio(result?.portfolio ?? null); // Set the portfolio state to the result state if the result state is not null
+      // If the silent state is false, set the selected photo state to null
+      if (!silent) {
+        setSelectedPhoto(null); // Set the selected photo state to null
+      }
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to load portfolio');
-      setPortfolio(null);
+      setError(e instanceof Error ? e.message : 'Failed to load portfolio'); // Set the error state to the error message if the error is an instance of the Error class
+      setPortfolio(null); // Set the portfolio state to null
     } finally {
-      setLoading(false);
+      // If the silent state is false, set the loading state to false
+      if (!silent) {
+        setLoading(false); // Set the loading state to false
+      }
     }
   }, []);
-
+  //useFocusEffect to load the portfolio
   useFocusEffect(
     useCallback(() => {
-      loadPortfolio();
+      const silent = portfolioRef.current != null; // Set the silent state to the portfolio ref state if the portfolio ref state is not null
+      void loadPortfolio({ silent }); // Load the portfolio
       return () => {
-        setSelectedPhoto(null);
+        setSelectedPhoto(null); // Set the selected photo state to null
       };
-    }, [loadPortfolio])
+    }, [loadPortfolio]) // Return a function to load the portfolio
   );
-
+  // Define the handlePressPhoto function to handle the press of a photo
   const handlePressPhoto = (p: Portfolio, photos: PortfolioPhoto[], photo: PortfolioPhoto) => {
-    const index = photos.findIndex((x) => x.id === photo.id);
-    if (index === -1) return;
-    setSelectedPhoto({ portfolio: p, photos, index });
+    const index = photos.findIndex((x) => x.id === photo.id); // Find the index of the photo in the photos array
+    if (index === -1) return; // If the index is -1, return
+    setSelectedPhoto({ portfolio: p, photos, index }); // Set the selected photo state to the portfolio, photos, and index
   };
-
+  // Define the loading state to show a loading indicator when the portfolio is loading
   if (loading && portfolio === null && !error) {
+    // Return the loading indicator when the portfolio is loading
     return (
       <View style={[styles.centered, { paddingTop: insets.top + 24, paddingBottom: insets.bottom + 24 }]}>
-        <ActivityIndicator size="large" color={NavbarColors.text} />
+        <ActivityIndicator size="large" color={NavbarColors.text} /> 
       </View>
     );
   }
-
-  const photos = portfolio?.photos ?? [];
-  const portraitUrl = portfolio ? uploadsUrl(portfolio.portrait) : null;
-
+  // Define the photos state to the photos from the portfolio
+  const photos = portfolio?.photos ?? []; // Set the photos state to the photos from the portfolio
+  const portraitUrl = portfolio ? uploadsUrl(portfolio.portrait) : null; // Set the portrait url state to the uploads url of the portfolio portrait
+  // Return the portfolio screen
   return (
     <View style={[styles.screen, { paddingTop: insets.top + 16, paddingBottom: insets.bottom + 16 }]}>
       <ScrollView
@@ -89,7 +110,7 @@ export default function PortfoliosScreen() {
           <View style={styles.errorWrap}>
             <Text style={styles.leadLine}>Browse recent work</Text>
             <Text style={styles.errorText}>{error}</Text>
-            <Pressable style={styles.retryButton} onPress={loadPortfolio}>
+            <Pressable style={styles.retryButton} onPress={() => void loadPortfolio()}>
               <Text style={styles.retryText}>Try again</Text>
             </Pressable>
           </View>
@@ -99,7 +120,7 @@ export default function PortfoliosScreen() {
             <Text style={styles.leadLine}>Browse recent work</Text>
             <Text style={styles.emptyTitle}>No portfolio to show</Text>
             <Text style={styles.emptySubtitle}>Check back soon.</Text>
-            <Pressable style={styles.retryButton} onPress={loadPortfolio}>
+            <Pressable style={styles.retryButton} onPress={() => void loadPortfolio()}>
               <Text style={styles.retryText}>Refresh</Text>
             </Pressable>
           </View>
@@ -110,7 +131,13 @@ export default function PortfoliosScreen() {
               <Text style={styles.leadLine}>Browse recent work by:</Text>
               <View style={styles.identityRow}>
                 {portraitUrl ? (
-                  <Image source={{ uri: portraitUrl }} style={styles.avatar} />
+                  <Image
+                    source={{ uri: portraitUrl }}
+                    style={styles.avatar}
+                    contentFit="cover"
+                    cachePolicy="memory-disk"
+                    transition={150}
+                  />
                 ) : (
                   <View style={styles.avatarPlaceholder}>
                     <Text style={styles.avatarInitial}>{(portfolio.name || '?').charAt(0).toUpperCase()}</Text>
@@ -122,7 +149,7 @@ export default function PortfoliosScreen() {
                 <View style={styles.identitySpacer} />
                 <Pressable
                   style={({ pressed }) => [styles.bookNowPill, pressed && styles.bookNowPillPressed]}
-                  onPress={() => {}}
+                  onPress={() => router.push('/book-appointment')}
                   accessibilityRole="button"
                   accessibilityLabel="Book now"
                 >
@@ -146,7 +173,14 @@ export default function PortfoliosScreen() {
                         onPress={() => handlePressPhoto(portfolio, photos, photo)}
                         activeOpacity={0.8}
                       >
-                        <Image source={{ uri }} style={styles.photoThumb} />
+                        <Image
+                          source={{ uri }}
+                          style={styles.photoThumb}
+                          contentFit="cover"
+                          cachePolicy="memory-disk"
+                          recyclingKey={`portfolio-thumb-${photo.id}`}
+                          transition={100}
+                        />
                       </TouchableOpacity>
                     );
                   })}
@@ -342,7 +376,12 @@ function PhotoViewerModal({ selected, setSelected }: PhotoViewerModalProps) {
           <GestureDetector gesture={viewerGesture}>
             <Animated.View style={[styles.viewerImageScaleWrap, { transform: [{ scale: zoomScale }] }]} collapsable={false}>
               {uri ? (
-                <Image source={{ uri }} style={styles.viewerImage} resizeMode="contain" />
+                <Image
+                  source={{ uri }}
+                  style={styles.viewerImage}
+                  contentFit="contain"
+                  cachePolicy="memory-disk"
+                />
               ) : (
                 <View style={styles.viewerImagePlaceholder} />
               )}

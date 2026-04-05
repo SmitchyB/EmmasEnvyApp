@@ -1,6 +1,8 @@
 // Portfolio API calls. Use with API_BASE; responses match backend /api/portfolios.
 import { apiUrl, fetchWithAuth } from '@/lib/api';
 
+//Changes for week 5: took out by getPortfolios, getPortfolioById. Added getPrimaryPortfolio.
+
 // Defines the PortfolioPhoto type
 export type PortfolioPhoto = {
   id: number; // The id of the portfolio photo
@@ -23,63 +25,34 @@ export type Portfolio = {
   updated_at: string; // The updated at date of the portfolio
   photos?: PortfolioPhoto[]; // The photos of the portfolio
 };
-// Defines the parseJson function
 function parseJson<T>(res: Response): Promise<T> {
-  return res.json() as Promise<T>; // Return the JSON response from the API as a Promise of the T type
+  return res.json() as Promise<T>;
 }
-// Defines the getPortfolios function
-export async function getPortfolios(): Promise<{ portfolios: Portfolio[] }> {
-  // Fetch the portfolios from the API
-  const res = await fetch(apiUrl('/api/portfolios'), {
-    method: 'GET', // Get the portfolios from the API
+
+/** Public solo portfolio tab; 404 when id=1 missing or not visible. */
+export async function getPrimaryPortfolio(): Promise<{
+  portfolio: Portfolio & { photos: PortfolioPhoto[] };
+} | null> {
+  // Fetch the primary portfolio from the API
+  const res = await fetch(apiUrl('/api/portfolios/primary'), {
+    method: 'GET', // Get the primary portfolio from the API
     headers: { Accept: 'application/json' }, // Accept the JSON response from the API
   });
-  const data = await parseJson<{ portfolios?: Portfolio[]; error?: string }>(res); // Parse the JSON response from the API as a Promise of the { portfolios?: Portfolio[]; error?: string } type
-  // If the response is not ok, throw an error with the error message or the status text
-  if (!res.ok) {
-    throw new Error(data.error || res.statusText); // Throw an error with the error message or the status text
+  // If the response is not ok, return null
+  if (res.status === 404) {
+    return null; // Return null
   }
-  return { portfolios: data.portfolios ?? [] }; // Return the portfolios from the API as a Promise of the { portfolios: Portfolio[] } type
-}
-// Defines the getPortfolioById function
-export async function getPortfolioById(id: number): Promise<{ portfolio: Portfolio & { photos: PortfolioPhoto[] } }> {
-  // Fetch the portfolio from the API
-  const res = await fetch(apiUrl(`/api/portfolios/${id}`), {
-    method: 'GET', // Get the portfolio from the API
-    headers: { Accept: 'application/json' }, // Accept the JSON response from the API
-  });
   const data = await parseJson<{ portfolio?: Portfolio & { photos?: PortfolioPhoto[] }; error?: string }>(res); // Parse the JSON response from the API as a Promise of the { portfolio?: Portfolio & { photos?: PortfolioPhoto[] }; error?: string } type
   // If the response is not ok, throw an error with the error message or the status text
   if (!res.ok) {
     throw new Error(data.error || res.statusText); // Throw an error with the error message or the status text
   }
   const portfolio = data.portfolio; // Set the portfolio state to the portfolio from the API
-  // If the portfolio is not found, throw an error with the error message
+  // If the portfolio is not found, return null
   if (!portfolio) {
-    throw new Error('Portfolio not found'); // Throw an error with the error message
+    return null; // Return null
   }
   return { portfolio: { ...portfolio, photos: portfolio.photos ?? [] } }; // Return the portfolio from the API as a Promise of the { portfolio: Portfolio & { photos: PortfolioPhoto[] } } type
-}
-// Primary public portfolio (solo artist tab); 404 when none / not visible.
-export async function getPrimaryPortfolio(): Promise<{
-  portfolio: Portfolio & { photos: PortfolioPhoto[] };
-} | null> {
-  const res = await fetch(apiUrl('/api/portfolios/primary'), {
-    method: 'GET',
-    headers: { Accept: 'application/json' },
-  });
-  if (res.status === 404) {
-    return null;
-  }
-  const data = await parseJson<{ portfolio?: Portfolio & { photos?: PortfolioPhoto[] }; error?: string }>(res);
-  if (!res.ok) {
-    throw new Error(data.error || res.statusText);
-  }
-  const portfolio = data.portfolio;
-  if (!portfolio) {
-    return null;
-  }
-  return { portfolio: { ...portfolio, photos: portfolio.photos ?? [] } };
 }
 // Defines the getMyPortfolio function
 export async function getMyPortfolio(
@@ -114,14 +87,9 @@ export async function getMyPortfolio(
   }
   return { portfolio: { ...portfolio, photos: portfolio.photos ?? [] } }; // Return the portfolio from the API as a Promise of the { portfolio: Portfolio & { photos: PortfolioPhoto[] } } type
 }
-// Defines the saveMyPortfolio function
 export async function saveMyPortfolio(
-  token: string | null | undefined, // The token for the user
-  body: {
-    name?: string | null; // The name of the portfolio
-    description?: string | null; // The description of the portfolio
-    visible?: boolean; // The visibility of the portfolio
-  }
+  token: string | null | undefined,
+  body: { visible?: boolean }
 ): Promise<{ portfolio: Portfolio & { photos: PortfolioPhoto[] } }> {
   // Fetch the my portfolio from the API
   const res = await fetchWithAuth(

@@ -44,6 +44,13 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
+        name="appointments"
+        options={{
+          title: 'Appointments',
+          tabBarIcon: ({ color }) => <IconSymbol size={TAB_ICON_SIZE} name="calendar" color={color} />,
+        }}
+      />
+      <Tabs.Screen
         name="account"
         options={{
           title: user ? 'Account' : 'Sign In/Up',

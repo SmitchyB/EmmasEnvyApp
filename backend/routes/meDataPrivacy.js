@@ -11,21 +11,15 @@ const { requireAuth } = require('../middleware/auth');
 
 const router = express.Router();
 const INVOICE_HEADERS_TABLE = 'emmasenvy.invoices';
-const USER_ADDRESSES_TABLE = 'emmasenvy.user_addresses';
 
 // POST /api/me/request-data-export
 router.post('/request-data-export', requireAuth, async (req, res, next) => {
   try {
     const userId = req.user.id;
-    const [userRow, addressesResult, invoicesResult] = await Promise.all([
+    const [userRow, invoicesResult] = await Promise.all([
       db.pool.query(
         `SELECT id, email, phone, first_name, last_name, dob, created_at, updated_at, reward_points
          FROM emmasenvy.users WHERE id = $1`,
-        [userId]
-      ),
-      db.pool.query(
-        `SELECT full_name, address_line_1, address_line_2, city, state_province, zip_postal_code, country, phone_number
-         FROM ${USER_ADDRESSES_TABLE} WHERE user_id = $1`,
         [userId]
       ),
       db.pool.query(
@@ -35,16 +29,7 @@ router.post('/request-data-export', requireAuth, async (req, res, next) => {
       ),
     ]);
     const user = userRow.rows[0];
-    const addresses = addressesResult.rows.map((r) => ({
-      full_name: r.full_name,
-      address_line_1: r.address_line_1,
-      address_line_2: r.address_line_2,
-      city: r.city,
-      state_province: r.state_province,
-      zip_postal_code: r.zip_postal_code,
-      country: r.country,
-      phone_number: r.phone_number,
-    }));
+    const addresses = [];
     const invoices = invoicesResult.rows.map((r) => ({
       invoice_id: r.invoice_id,
       created_at: r.created_at,

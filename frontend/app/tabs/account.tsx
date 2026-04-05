@@ -18,6 +18,7 @@ import { GradientColors, NavbarColors } from '@/constants/theme'; // Import the 
 import { useAuth } from '@/contexts/AuthContext'; // Import the useAuth hook from @/contexts/AuthContext
 import { login } from '@/lib/auth-api'; // Import the login function from @/lib/auth-api
 import { setSignupDraft } from '@/lib/signup-draft'; // Import the setSignupDraft function from @/lib/signup-draft
+import { isStaffRole } from '@/lib/roles'; // Staff-only UI (Admin / IT)
 
 type AuthMode = 'signin' | 'signup'; // Define the AuthMode type as 'signin' or 'signup'
 type IdentifierType = 'email' | 'phone'; // Define the IdentifierType type as 'email' or 'phone'
@@ -176,7 +177,7 @@ export default function AccountScreen() { // Define the AccountScreen component
   if (user) {
     const photoUrl = uploadsUrl(user.profile_picture); // Get the photo url from the uploadsUrl function
     const displayName = [user.first_name, user.last_name].filter(Boolean).join(' ') || user.email || 'Account'; // Get the display name from the user first name, last name, email, or 'Account'
-    const canManagePortfolio = user.role === 'Admin' || user.role === 'IT'; // Set the can manage portfolio to true if the user role is Admin or IT
+    const canManagePortfolio = isStaffRole(user.role); // Admin / IT
     //Return the logged in content with the profile card, menu buttons, and sign out button
     return (
       <ScrollView
@@ -198,6 +199,11 @@ export default function AccountScreen() { // Define the AccountScreen component
         {canManagePortfolio && (
           <Pressable style={styles.menuButton} onPress={() => router.push('/manage-portfolio')}>
             <Text style={styles.menuButtonText}>Manage portfolio</Text>
+          </Pressable>
+        )}
+        {canManagePortfolio && (
+          <Pressable style={styles.menuButton} onPress={() => router.push('/my-services')}>
+            <Text style={styles.menuButtonText}>My Services</Text>
           </Pressable>
         )}
         <Pressable style={styles.menuButton} onPress={() => router.push('/settings')}>
