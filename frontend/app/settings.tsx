@@ -13,12 +13,6 @@ import {
   TextInput,
   View,
 } from 'react-native'; // Import the ActivityIndicator, Image, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, and View from react-native for the components
-import { Dropdown } from '@/components/Dropdown'; // Import the Dropdown from @/components/Dropdown for the dropdown
-import {
-  getCountryNames,
-  getStatesForCountry,
-  countryHasStates,
-} from '@/lib/countries-states'; // Import the getCountryNames, getStatesForCountry, and countryHasStates from @/lib/countries-states for the countries and states
 import { useSafeAreaInsets } from 'react-native-safe-area-context'; // Import the useSafeAreaInsets from react-native-safe-area-context for the safe area insets
 import { uploadsUrl } from '@/constants/config'; // Import the uploadsUrl from @/constants/config for the uploads url
 import { GradientColors, NavbarColors } from '@/constants/theme'; // Import the GradientColors and NavbarColors from @/constants/theme for the colors
@@ -31,13 +25,6 @@ import {
   updateAccount,
   uploadProfilePhoto,
 } from '@/lib/auth-api'; // Import the getSessions, revokeSession, untrustSession, updateProfile, updateAccount, and uploadProfilePhoto from @/lib/auth-api for the authentication
-import {
-  getAddresses,
-  createAddress,
-  updateAddress,
-  deleteAddress,
-  type UserAddress,
-} from '@/lib/me-api'; // Import the getAddresses, createAddress, updateAddress, deleteAddress, and type UserAddress from @/lib/me-api for the user addresses
 import { TwoFactorSection } from '@/components/TwoFactorSection'; // Import the TwoFactorSection from @/components/TwoFactorSection for the two factor section
 
 // Define the SettingsScreen component
@@ -47,9 +34,7 @@ export default function SettingsScreen() {
   const { user, token, setSession, logout } = useAuth(); // Get the user, token, setSession, and logout from the useAuth
   const router = useRouter(); // Get the router from the useRouter
   const [sessions, setSessions] = useState<Awaited<ReturnType<typeof getSessions>>['sessions']>([]); // Get the sessions from the useState
-  const [addresses, setAddresses] = useState<UserAddress[]>([]); // Get the addresses from the useState
   const [loadingSessions, setLoadingSessions] = useState(false); // Get the loading sessions from the useState
-  const [loadingAddresses, setLoadingAddresses] = useState(false); // Get the loading addresses from the useState
   const [profileSaving, setProfileSaving] = useState(false); // Get the profile saving from the useState
   const [accountSaving, setAccountSaving] = useState(false); // Get the account saving from the useState
   const [sessionActionId, setSessionActionId] = useState<number | null>(null); // Get the session action id from the useState
@@ -64,19 +49,6 @@ export default function SettingsScreen() {
   const [newPhone, setNewPhone] = useState(''); // Get the new phone from the useState
   const [newPassword, setNewPassword] = useState(''); // Get the new password from the useState
   const [confirmPassword, setConfirmPassword] = useState(''); // Get the confirm password from the useState
-  const [addressFormVisible, setAddressFormVisible] = useState(false); // Get the address form visible from the useState
-  const [editingAddressId, setEditingAddressId] = useState<number | null>(null); // Get the editing address id from the useState
-  // Get the address form from the useState
-  const [addressForm, setAddressForm] = useState({
-    full_name: '', // Get the full name from the useState
-    address_line_1: '', // Get the address line 1 from the useState
-    address_line_2: '', // Get the address line 2 from the useState
-    city: '', // Get the city from the useState
-    state_province: '', // Get the state province from the useState
-    zip_postal_code: '', // Get the zip postal code from the useState
-    country: '', // Get the country from the useState
-    phone: '', // Get the phone from the useState
-  });
   // Define the load sessions function
   const loadSessions = useCallback(async () => {
     // If the token is not valid, return
@@ -93,22 +65,6 @@ export default function SettingsScreen() {
     }
   }, [token]); // Dependencies for the load sessions function
 
-  // Define the load addresses function
-  const loadAddresses = useCallback(async () => {
-    // If the token is not valid, return
-    if (!token) return;
-    setLoadingAddresses(true); // Set the loading addresses to true
-    //Try to get the addresses from the API
-    try {
-      const list = await getAddresses(token); // Get the addresses from the API
-      setAddresses(list); // Set the addresses to the list
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to load addresses'); // Set the error to the error message
-    } finally {
-      setLoadingAddresses(false); // Set the loading addresses to false
-    }
-  }, [token]); // Dependencies for the load addresses function
-
   // Define the use effect to set the first name, last name, dob, new email, and new phone when the user is set
   useEffect(() => {
     // If the user is not valid, return
@@ -121,14 +77,12 @@ export default function SettingsScreen() {
     }
   }, [user]); // Dependencies for the use effect
 
-  // Define the use effect to load the sessions and addresses when the token is set
+  // Define the use effect to load the sessions when the token is set
   useEffect(() => {
-    // If the token is valid, load the sessions and addresses
     if (token) {
-      loadSessions(); // Load the sessions
-      loadAddresses(); // Load the addresses
+      loadSessions();
     }
-  }, [token, loadSessions, loadAddresses]); // Dependencies for the use effect
+  }, [token, loadSessions]); // Dependencies for the use effect
 
   // Define the pick image function
   const pickImage = async () => {
@@ -233,115 +187,6 @@ export default function SettingsScreen() {
     }
   };
 
-  // Define the open new address function
-  const openNewAddress = () => {
-    // Set the editing address id to null
-    setEditingAddressId(null);
-    // Set the address form to the empty address form
-    setAddressForm({
-      full_name: '', // Full name of the user
-      address_line_1: '', // Address line 1 of the user
-      address_line_2: '', // Address line 2 of the user
-      city: '', // City of the user
-      state_province: '', // State/province of the user
-      zip_postal_code: '', // Zip/postal code of the user
-      country: '', // Country of the user
-      phone: '', // Phone of the user
-    });
-    setAddressFormVisible(true); // Set the address form visible to true
-  };
-
-  // Define the open edit address function
-  const openEditAddress = (a: UserAddress) => {
-    setEditingAddressId(a.id); // Set the editing address id to the address id
-    // Set the address form to the address form
-    setAddressForm({
-      full_name: a.full_name, // Full name of the user
-      address_line_1: a.address_line_1, // Address line 1 of the user
-      address_line_2: a.address_line_2 ?? '', // Address line 2 of the user
-      city: a.city, // City of the user
-      state_province: a.state_province, // State/province of the user
-      zip_postal_code: a.zip_postal_code, // Zip/postal code of the user
-      country: a.country ?? '', // Country of the user
-      phone: a.phone ?? '', // Phone of the user
-    });
-    setAddressFormVisible(true); // Set the address form visible to true
-  };
-
-  // Define the save address function
-  const saveAddress = async () => {
-    // If the token is not valid, return
-    if (!token) return;
-    const { full_name, address_line_1, city, state_province, zip_postal_code, country } = addressForm; // Get the full name, address line 1, city, state province, zip postal code, and country from the address form
-    const needState = countryHasStates(country); // If the country has states
-    // If the full name, address line 1, city, zip postal code, or country is not valid, set the error to 'Full name, address line 1, city, zip, and country are required' and return
-    if (!full_name.trim() || !address_line_1.trim() || !city.trim() || !zip_postal_code.trim() || !country.trim()) {
-      setError('Full name, address line 1, city, zip, and country are required'); // Set the error to 'Full name, address line 1, city, zip, and country are required' and return
-      return;
-    }
-    // If the country has states and the state province is not valid, set the error to 'Please select a state or province.' and return
-    if (needState && !state_province.trim()) {
-      setError('Please select a state or province.'); // Set the error to 'Please select a state or province.' and return
-      return;
-    }
-    setError(null); // Set the error to null
-    //Try to save the address
-    try {
-      // If the editing address id is found, update the address
-      if (editingAddressId) {
-        // Update the address with the token, editing address id, full name, address line 1, address line 2, city, state province, zip postal code, country, and phone
-        const updated = await updateAddress(token, editingAddressId, {
-          full_name: full_name.trim(), // Full name of the user
-          address_line_1: address_line_1.trim(), // Address line 1 of the user
-          address_line_2: addressForm.address_line_2.trim() || undefined, // Address line 2 of the user 
-          city: city.trim(), // City of the user
-          state_province: state_province.trim(), // State/province of the user
-          zip_postal_code: zip_postal_code.trim(), // Zip postal code of the user
-          country: country.trim(), // Country of the user
-          phone: addressForm.phone.trim() || undefined, // Phone of the user
-        });
-        setAddresses((prev) => prev.map((a) => (a.id === editingAddressId ? updated : a))); // Set the addresses to the previous addresses with the updated address
-      } 
-      // Else if the editing address id is not found, create the address
-      else {
-        // Create the address with the token, full name, address line 1, address line 2, city, state province, zip postal code, country, and phone
-        const created = await createAddress(token, {
-          full_name: full_name.trim(), // Full name of the user
-          address_line_1: address_line_1.trim(), // Address line 1 of the user
-          address_line_2: addressForm.address_line_2.trim() || undefined, // Address line 2 of the user
-          city: city.trim(), // City of the user
-          state_province: state_province.trim(), // State/province of the user
-          zip_postal_code: zip_postal_code.trim(), // Zip postal code of the user
-          country: country.trim(), // Country of the user
-          phone: addressForm.phone.trim() || undefined, // Phone of the user
-        });
-        setAddresses((prev) => [created, ...prev]); // Set the addresses to the previous addresses with the created address
-      }
-      setAddressFormVisible(false); // Set the address form visible to false
-      setEditingAddressId(null); // Set the editing address id to null
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to save address'); // Set the error to the error message
-    }
-  };
-
-  // Define the remove address function
-  const removeAddress = async (id: number) => {
-    if (!token) return; // If the token is not valid, return
-    setError(null); // Set the error to null
-    //Try to remove the address
-    try {
-      await deleteAddress(token, id); // Delete the address with the token and id
-      setAddresses((prev) => prev.filter((a) => a.id !== id)); // Set the addresses to the previous addresses with the removed address
-      // If the editing address id is the same as the id, set the address form visible to false and set the editing address id to null
-      if (editingAddressId === id) {
-        setAddressFormVisible(false); // Set the address form visible to false
-        setEditingAddressId(null); // Set the editing address id to null
-      }
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to delete address'); // Set the error to the error message
-    }
-  };
-
   // Define the handle revoke session function
   const handleRevokeSession = async (sessionId: number) => {
     // If the token is not valid, return
@@ -395,7 +240,7 @@ export default function SettingsScreen() {
 
   const photoUrl = uploadsUrl(photoUri ? undefined : user.profile_picture); //Get the photo url from the photo uri or the user profile picture
 
-  // Return the content of the settings screen that allows the user to change their profile, address book, secure account, and two factor authentication
+  // Return the content of the settings screen that allows the user to change their profile, secure account, and two factor authentication
   const content = (
     <ScrollView
       style={styles.scroll}
@@ -427,91 +272,6 @@ export default function SettingsScreen() {
       <Pressable style={[styles.primaryButton, profileSaving && styles.buttonDisabled]} onPress={handleSaveProfile} disabled={profileSaving}>
         {profileSaving ? <ActivityIndicator color="#fff" size="small" /> : <Text style={styles.primaryButtonText}>Save profile</Text>}
       </Pressable>
-
-      {/* Address book */}
-      <Text style={styles.sectionTitle}>Address book</Text>
-      {loadingAddresses ? (
-        <ActivityIndicator color={NavbarColors.text} style={styles.loader} />
-      ) : (
-        <>
-          {addresses.map((a) => (
-            <View key={a.id} style={styles.addressCard}>
-              <Text style={styles.addressSummary}>
-                {a.full_name}, {a.address_line_1}, {a.city}, {a.state_province} {a.zip_postal_code}
-              </Text>
-              <View style={styles.addressActions}>
-                <Pressable style={styles.smallButton} onPress={() => openEditAddress(a)}>
-                  <Text style={styles.smallButtonText}>Edit</Text>
-                </Pressable>
-                <Pressable style={[styles.smallButton, styles.dangerSmall]} onPress={() => removeAddress(a.id)}>
-                  <Text style={styles.smallButtonText}>Delete</Text>
-                </Pressable>
-              </View>
-            </View>
-          ))}
-          <Pressable style={styles.secondaryButton} onPress={openNewAddress}>
-            <Text style={styles.secondaryButtonText}>Add address</Text>
-          </Pressable>
-          {addressFormVisible && (
-            <View style={styles.formBlock}>
-              <Text style={styles.formTitle}>{editingAddressId ? 'Edit address' : 'New address'}</Text>
-              <Text style={styles.dropdownLabel}>Country</Text>
-              <Dropdown
-                options={
-                  addressForm.country && !getCountryNames().includes(addressForm.country)
-                    ? [addressForm.country, ...getCountryNames()]
-                    : getCountryNames()
-                }
-                value={addressForm.country}
-                onSelect={(t) => setAddressForm((f) => ({
-                  ...f,
-                  country: t,
-                  state_province: countryHasStates(t) ? '' : f.state_province,
-                }))}
-                placeholder="Select country"
-              />
-              {countryHasStates(addressForm.country) ? (
-                <>
-                  <Text style={styles.dropdownLabel}>State / Province</Text>
-                  <Dropdown
-                    options={(() => {
-                      const states = getStatesForCountry(addressForm.country);
-                      const current = addressForm.state_province;
-                      if (current && !states.includes(current)) return [current, ...states];
-                      return states;
-                    })()}
-                    value={addressForm.state_province}
-                    onSelect={(t) => setAddressForm((f) => ({ ...f, state_province: t }))}
-                    placeholder="Select state or province"
-                  />
-                </>
-              ) : (
-                <TextInput
-                  style={styles.input}
-                  placeholder="State / Province (optional)"
-                  placeholderTextColor={NavbarColors.textMuted}
-                  value={addressForm.state_province}
-                  onChangeText={(t) => setAddressForm((f) => ({ ...f, state_province: t }))}
-                />
-              )}
-              <TextInput style={styles.input} placeholder="Full name" placeholderTextColor={NavbarColors.textMuted} value={addressForm.full_name} onChangeText={(t) => setAddressForm((f) => ({ ...f, full_name: t }))} />
-              <TextInput style={styles.input} placeholder="Address line 1" placeholderTextColor={NavbarColors.textMuted} value={addressForm.address_line_1} onChangeText={(t) => setAddressForm((f) => ({ ...f, address_line_1: t }))} />
-              <TextInput style={styles.input} placeholder="Address line 2 (optional)" placeholderTextColor={NavbarColors.textMuted} value={addressForm.address_line_2} onChangeText={(t) => setAddressForm((f) => ({ ...f, address_line_2: t }))} />
-              <TextInput style={styles.input} placeholder="City" placeholderTextColor={NavbarColors.textMuted} value={addressForm.city} onChangeText={(t) => setAddressForm((f) => ({ ...f, city: t }))} />
-              <TextInput style={styles.input} placeholder="ZIP / Postal code" placeholderTextColor={NavbarColors.textMuted} value={addressForm.zip_postal_code} onChangeText={(t) => setAddressForm((f) => ({ ...f, zip_postal_code: t }))} />
-              <TextInput style={styles.input} placeholder="Phone (optional)" placeholderTextColor={NavbarColors.textMuted} value={addressForm.phone} onChangeText={(t) => setAddressForm((f) => ({ ...f, phone: t }))} keyboardType="phone-pad" />
-              <View style={styles.rowButtons}>
-                <Pressable style={styles.secondaryButton} onPress={() => { setAddressFormVisible(false); setEditingAddressId(null); }}>
-                  <Text style={styles.secondaryButtonText}>Cancel</Text>
-                </Pressable>
-                <Pressable style={styles.primaryButton} onPress={saveAddress}>
-                  <Text style={styles.primaryButtonText}>Save</Text>
-                </Pressable>
-              </View>
-            </View>
-          )}
-        </>
-      )}
 
       {/* Secure account */}
       <Text style={styles.sectionTitle}>Email, phone & password</Text>
@@ -612,9 +372,6 @@ const styles = StyleSheet.create({
   secondaryButtonText: { color: NavbarColors.text, fontSize: 16 },
   buttonDisabled: { opacity: 0.7 },
   loader: { marginVertical: 12 },
-  addressCard: { backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 10, padding: 14, marginBottom: 10 },
-  addressSummary: { color: NavbarColors.text, fontSize: 14, marginBottom: 8 },
-  addressActions: { flexDirection: 'row', gap: 10 },
   smallButton: {
     paddingVertical: 8,
     paddingHorizontal: 16,
@@ -624,9 +381,6 @@ const styles = StyleSheet.create({
   },
   smallButtonText: { color: NavbarColors.text, fontSize: 14 },
   dangerSmall: { backgroundColor: 'rgba(200,80,80,0.4)' },
-  formBlock: { backgroundColor: 'rgba(0,0,0,0.2)', borderRadius: 10, padding: 16, marginBottom: 16 },
-  formTitle: { color: NavbarColors.text, fontWeight: '600', marginBottom: 12 },
-  dropdownLabel: { color: NavbarColors.textMuted, fontSize: 14, marginBottom: 4, fontWeight: '500' },
   rowButtons: { flexDirection: 'row', gap: 12, marginTop: 8 },
   sessionCard: { backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 10, padding: 14, marginBottom: 10 },
   sessionDevice: { color: NavbarColors.text, fontSize: 15, fontWeight: '500' },
