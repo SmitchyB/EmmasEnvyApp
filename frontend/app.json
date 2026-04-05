@@ -36,6 +36,13 @@
             "backgroundColor": "#0d0d0d"
           }
         }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow access to your photos to attach inspiration images to appointments.",
+          "cameraPermission": "Allow the camera to take after-visit photos when completing a service."
+        }
       ]
     ],
     "experiments": {

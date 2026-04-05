@@ -18,6 +18,7 @@ const MAPPING: IconMapping = {
   'folder.fill': 'folder',
   'bag.fill': 'shopping-bag',
   'person.circle': 'person',
+  calendar: 'event',
 };
 
 /**

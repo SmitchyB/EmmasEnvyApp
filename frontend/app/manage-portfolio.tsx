@@ -1,9 +1,10 @@
 import * as ImagePicker from 'expo-image-picker'; // Import the ImagePicker module from expo-image-picker
+import { useFocusEffect } from '@react-navigation/native';
+import { Image } from 'expo-image';
 import { useRouter } from 'expo-router'; // Import the useRouter module from expo-router
-import React, { useEffect, useMemo, useState } from 'react'; // Import the React, useEffect, useMemo, and useState modules from react
+import React, { useCallback, useMemo, useRef, useState } from 'react'; // Import the React, useMemo, and useState modules from react
 import {
   ActivityIndicator, // Import the ActivityIndicator module from react-native
-  Image, // Import the Image module from react-native
   KeyboardAvoidingView, // Import the KeyboardAvoidingView module from react-native
   Modal, // Import the Modal module from react-native
   Platform, // Import the Platform module from react-native
@@ -19,14 +20,49 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'; // Import th
 import { uploadsUrl } from '@/constants/config'; // Import the uploadsUrl module from @/constants/config
 import { GradientColors, NavbarColors } from '@/constants/theme'; // Import the GradientColors and NavbarColors modules from @/constants/theme
 import { useAuth } from '@/contexts/AuthContext'; // Import the useAuth module from @/contexts/AuthContext
-import type { PortfolioPhoto } from '@/lib/portfolio-api'; // Import the PortfolioPhoto type from @/lib/portfolio-api
 import {
-  deletePortfolioPhoto,
-  getMyPortfolio,
-  saveMyPortfolio,
-  updatePortfolioPhoto,
-  uploadPortfolioPhoto,
+  PortfolioPhoto, // Import the PortfolioPhoto type from @/lib/portfolio-api
+  deletePortfolioPhoto, // Import the deletePortfolioPhoto function from @/lib/portfolio-api
+  getMyPortfolio, // Import the getMyPortfolio function from @/lib/portfolio-api
+  saveMyPortfolio, // Import the saveMyPortfolio function from @/lib/portfolio-api
+  updatePortfolioPhoto, // Import the updatePortfolioPhoto function from @/lib/portfolio-api
+  uploadPortfolioPhoto, // Import the uploadPortfolioPhoto function from @/lib/portfolio-api
 } from '@/lib/portfolio-api';
+
+//Week 5 Changes: Fixed issues with lagging when scrolling through the portfolio photos.
+//Define the ManagePhotoThumb component
+const ManagePhotoThumb = React.memo(function ManagePhotoThumb({
+  photo, // Photo for the ManagePhotoThumb component
+  onOpen, // Function to open the photo
+}: {
+  photo: PortfolioPhoto; // Photo for the ManagePhotoThumb component
+  onOpen: (p: PortfolioPhoto) => void; // Function to open the photo
+}) {
+  const uri = photo.url ? uploadsUrl(photo.url) : null; // Get the URI for the photo
+  if (!uri) return null; // If the URI is not found, return null
+  // Return the ManagePhotoThumb component
+  return (
+    <Pressable style={styles.photoThumbWrap} onPress={() => onOpen(photo)}>
+      <Image
+        source={{ uri }}
+        style={styles.photoThumb}
+        contentFit="cover"
+        cachePolicy="memory-disk"
+        recyclingKey={`manage-portfolio-${photo.id}`}
+        transition={100}
+      />
+      {photo.caption ? (
+        <Text style={styles.photoCaption} numberOfLines={1}>
+          {photo.caption}
+        </Text>
+      ) : (
+        <Text style={styles.photoCaptionMuted} numberOfLines={1}>
+          Add caption
+        </Text>
+      )}
+    </Pressable>
+  );
+});
 
 // Define the ManagePortfolioScreen component
 export default function ManagePortfolioScreen() {
@@ -45,6 +81,7 @@ export default function ManagePortfolioScreen() {
   const [selectedPhotoCaption, setSelectedPhotoCaption] = useState(''); // Import the useState module from react
   const [updatingPhoto, setUpdatingPhoto] = useState(false); // Import the useState module from react
   const [deletingPhoto, setDeletingPhoto] = useState(false); // Import the useState module from react
+  const hasLoadedOnceRef = useRef(false);
 
   // Define the canManage function
   const canManage = useMemo(() => {
@@ -53,94 +90,88 @@ export default function ManagePortfolioScreen() {
     return user.role === 'Admin' || user.role === 'IT'; // Return the user role is Admin or IT
   }, [user]);
 
+  // Define the profileDisplayName function
   const profileDisplayName = useMemo(() => {
+    // If the user is not logged in, return an empty string
     if (!user) return '';
-    const parts = [user.first_name, user.last_name].filter(Boolean) as string[];
-    const full = parts.join(' ').trim();
-    return full || user.email?.trim() || 'Your account';
-  }, [user]);
+    const parts = [user.first_name, user.last_name].filter(Boolean) as string[]; // Get the first name and last name from the user
+    const full = parts.join(' ').trim(); // Join the first name and last name and trim the whitespace
+    return full || user.email?.trim() || 'Your account'; // Return the full name or email or 'Your account'
+  }, [user]); // Return the profile display name
 
-  const profilePhotoUri = user?.profile_picture ? uploadsUrl(user.profile_picture) : null;
+  const profilePhotoUri = user?.profile_picture ? uploadsUrl(user.profile_picture) : null; // Get the profile photo URI from the user
 
-  // Define the useEffect hook for loading the portfolio
-  useEffect(() => {
-    let cancelled = false; // Import the useState module from react
-    // Define the load function
-    async function load() {
-      // If the token is not valid or the user cannot manage, set the loading state to false and return
+  // Define the loadPortfolio function
+  const loadPortfolio = useCallback(
+    async (opts?: { silent?: boolean }) => {
+      const silent = opts?.silent === true; // If the silent option is true, set the silent to true
+      // If the token is not valid or the user cannot manage, set the loading to false and return
       if (!token || !canManage) {
-        setLoading(false); // Set the loading state to false
-        return; // Return
+        setLoading(false); // Set the loading to false
+        return;
       }
-      setLoading(true); // Set the loading state to true
-      setError(null); // Set the error state to null
-      // Try to get the portfolio from the API
+      // If the silent option is false, set the loading to true
+      if (!silent) {
+        setLoading(true); // Set the loading to true
+      }
+      setError(null); // Set the error to null
+      // Try to get the portfolio
       try {
         const { portfolio } = await getMyPortfolio(token); // Get the portfolio from the API
         // If the portfolio is not found, create a new portfolio
         if (!portfolio) {
-          // No portfolio yet – create an initial hidden portfolio entry so the user can start editing.
+          // Create a new portfolio
           const created = await saveMyPortfolio(token, {
-            visible: false,
+            visible: false, // Set the visibility to false
           });
-          if (!cancelled) {
-            setPhotos(created.portfolio.photos ?? []);
-            setVisible(created.portfolio.visible ?? false);
-          }
+          setPhotos(created.portfolio.photos ?? []); // Set the photos to the photos from the created portfolio
+          setVisible(created.portfolio.visible ?? false); // Set the visibility to the visibility from the created portfolio
+          hasLoadedOnceRef.current = true; // Set the has loaded once ref to true
           return;
         }
-        if (!cancelled) {
-          setPhotos(portfolio.photos ?? []);
-          setVisible(portfolio.visible ?? false);
-        }
-      }
-      // If the portfolio is not found, create a new portfolio
-      catch (e) {
-        if (cancelled) return; // If the portfolio is cancelled, return
-        const message = e instanceof Error ? e.message : String(e); // Set the message to the error message
-        // If backend reports "not found" via error instead of 404 status, still create a hidden portfolio.
+        setPhotos(portfolio.photos ?? []); // Set the photos to the photos from the portfolio
+        setVisible(portfolio.visible ?? false); // Set the visibility to the visibility from the portfolio
+        hasLoadedOnceRef.current = true; // Set the has loaded once ref to true
+      } catch (e) {
+        const message = e instanceof Error ? e.message : String(e); // Set the message to the error message or the string error
+        // If the token is valid or the user can manage and the message contains 'not found' or '404', try to create a new portfolio
         if (token && canManage && /not found|404/i.test(message)) {
           // Try to create a new portfolio
           try {
             const created = await saveMyPortfolio(token, {
-              visible: false,
+              visible: false, // Set the visibility to false
             });
-            if (!cancelled) {
-              setPhotos(created.portfolio.photos ?? []);
-              setVisible(created.portfolio.visible ?? false);
-            }
-          } 
-          // If the portfolio is not cancelled, set the error to the create error message
-          catch (createErr) {
-            // If the portfolio is not cancelled, set the error to the create error message
-            if (!cancelled) {
-              // Set the error to the create error message
-              setError(
-                createErr instanceof Error // If the create error is an error, set the error to the create error message
-                  ? createErr.message // If the create error is an error, set the error to the create error message
-                  : 'Failed to create portfolio' // If the create error is not an error, set the error to 'Failed to create portfolio'
-              );
-            }
+            setPhotos(created.portfolio.photos ?? []); // Set the photos to the photos from the created portfolio
+            setVisible(created.portfolio.visible ?? false); // Set the visibility to the visibility from the created portfolio
+            hasLoadedOnceRef.current = true; // Set the has loaded once ref to true
+          } catch (createErr) {
+            setError(
+              createErr instanceof Error ? createErr.message : 'Failed to create portfolio' // Set the error to the create error message or 'Failed to create portfolio'
+            );
           }
+        } else {
+          setError(message || 'Failed to load portfolio'); // Set the error to the message or 'Failed to load portfolio'
         }
-        // If the portfolio is not cancelled, set the error to the load error message
-        else if (!cancelled) {
-          setError(message || 'Failed to load portfolio'); // Set the error to the load error message
-        }
-      } 
-      // If the portfolio is not cancelled, set the loading state to false
-      finally {
-        // If the portfolio is not cancelled, set the loading state to false
-        if (!cancelled) {
-          setLoading(false); // Set the loading state to false
+      } finally {
+        // If the silent option is false, set the loading to false
+        if (!silent) {
+          setLoading(false); // Set the loading to false
         }
       }
-    }
-    load(); // Load the portfolio
-    return () => {
-      cancelled = true; // Set the cancelled flag to true
-    };
-  }, [token, canManage]); // Dependencies for the useEffect hook
+    },
+    [token, canManage] // Return the token and can manage
+  );
+
+  //useFocusEffect to load the portfolio
+  useFocusEffect(
+    //useCallback to load the portfolio
+    useCallback(() => {
+      if (!token || !canManage) return undefined; // If the token is not valid or the user cannot manage, return undefined
+      const silent = hasLoadedOnceRef.current; // Set the silent to the has loaded once ref
+      void loadPortfolio({ silent }); // Load the portfolio
+      return undefined; // Return undefined
+    }, [token, canManage, loadPortfolio]) // Return the token and can manage and load portfolio
+  );
 
   // Define the clearStatusSoon function
   const clearStatusSoon = () => {
@@ -164,10 +195,10 @@ export default function ManagePortfolioScreen() {
       const { portfolio } = await saveMyPortfolio(token, {
         visible,
       });
-      setPhotos(portfolio.photos ?? []);
-      setVisible(portfolio.visible ?? true);
-      setStatusMessage('Visibility saved');
-      clearStatusSoon();
+      setPhotos(portfolio.photos ?? []); // Set the photos to the photos from the portfolio
+      setVisible(portfolio.visible ?? true); // Set the visibility to the visibility from the portfolio
+      setStatusMessage('Visibility saved'); // Set the status message to 'Visibility saved'
+      clearStatusSoon(); // Clear the status soon
     } 
     // If the portfolio is not saved, set the error to the save error message
     catch (e) {
@@ -213,11 +244,10 @@ export default function ManagePortfolioScreen() {
     }
   };
 
-  // Define the openPhotoEditor function
-  const openPhotoEditor = (photo: PortfolioPhoto) => {
-    setSelectedPhoto(photo); // Set the selected photo to the photo
-    setSelectedPhotoCaption(photo.caption ?? ''); // Set the selected photo caption to the photo caption or empty string
-  };
+  const openPhotoEditor = useCallback((photo: PortfolioPhoto) => {
+    setSelectedPhoto(photo);
+    setSelectedPhotoCaption(photo.caption ?? '');
+  }, []);
 
   // Define the handleUpdatePhoto function
   const handleUpdatePhoto = async () => {
@@ -320,7 +350,13 @@ export default function ManagePortfolioScreen() {
 
         <View style={styles.profileRow}>
           {profilePhotoUri ? (
-            <Image source={{ uri: profilePhotoUri }} style={styles.profileAvatar} />
+            <Image
+              source={{ uri: profilePhotoUri }}
+              style={styles.profileAvatar}
+              contentFit="cover"
+              cachePolicy="memory-disk"
+              transition={150}
+            />
           ) : (
             <View style={styles.profileAvatarPlaceholder}>
               <Text style={styles.profileAvatarInitial}>
@@ -383,27 +419,9 @@ export default function ManagePortfolioScreen() {
           <Text style={styles.emptyText}>No photos yet.</Text>
         ) : (
           <View style={styles.photosGrid}>
-            {photos.map((photo) => {
-              const uri = uploadsUrl(photo.url);
-              if (!uri) return null;
-              return (
-                <Pressable
-                  key={photo.id}
-                  style={styles.photoThumbWrap}
-                  onPress={() => openPhotoEditor(photo)}>
-                  <Image source={{ uri }} style={styles.photoThumb} />
-                  {photo.caption ? (
-                    <Text style={styles.photoCaption} numberOfLines={1}>
-                      {photo.caption}
-                    </Text>
-                  ) : (
-                    <Text style={styles.photoCaptionMuted} numberOfLines={1}>
-                      Add caption
-                    </Text>
-                  )}
-                </Pressable>
-              );
-            })}
+            {photos.map((photo) => (
+              <ManagePhotoThumb key={photo.id} photo={photo} onOpen={openPhotoEditor} />
+            ))}
           </View>
         )}
       </ScrollView>
@@ -425,7 +443,8 @@ export default function ManagePortfolioScreen() {
                   <Image
                     source={{ uri: uploadsUrl(selectedPhoto.url) as string }}
                     style={styles.modalImage}
-                    resizeMode="contain"
+                    contentFit="contain"
+                    cachePolicy="memory-disk"
                   />
                 ) : null}
                 <Text style={styles.modalTitle}>Edit caption</Text>

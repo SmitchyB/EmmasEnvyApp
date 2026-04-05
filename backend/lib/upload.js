@@ -69,10 +69,12 @@ const portfolioMePhotoUpload = createImageUpload({
   getFilename: (req, file) => `portfolio-me-${(req.user && req.user.id) || '0'}-${Date.now()}${safeExt(file.originalname)}`,
 });
 
-const finishedPhotoUpload = createImageUpload({
-  subdir: 'portfolio',
+/** After-appointment photos; paths stored on appointment.completed_photos and referenced from portfolio_photos.url */
+const appointmentCompletedPhotoUpload = createImageUpload({
+  subdir: path.join('appointments', 'completedapt'),
   maxSize: MAX_IMAGE_SIZE,
-  getFilename: (req, file) => `finished-${req.params.id || '0'}-${Date.now()}${safeExt(file.originalname)}`,
+  getFilename: (req, file) =>
+    `completedapt-${req.params.id || '0'}-${Date.now()}${safeExt(file.originalname)}`,
 });
 
 const homeHeroUpload = createImageUpload({
@@ -96,7 +98,7 @@ module.exports = {
   productImageUpload,
   portfolioPhotoUpload,
   portfolioMePhotoUpload,
-  finishedPhotoUpload,
+  appointmentCompletedPhotoUpload,
   homeHeroUpload,
   supportPhotoUpload,
 };

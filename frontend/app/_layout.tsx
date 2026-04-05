@@ -7,6 +7,7 @@ import 'react-native-reanimated'; // Import the react-native-reanimated for the 
 import { Header } from '@/components/header'; // Import the Header component from @/components/header for the header
 import { GradientColors } from '@/constants/theme'; // Import the GradientColors from @/constants/theme for the gradient colors
 import { AuthProvider } from '@/contexts/AuthContext'; // Import the AuthProvider from @/contexts/AuthContext for the authentication
+import { BookingDataProvider } from '@/contexts/BookingDataContext'; // Appointments list from API
 
 // Summary of changes for Week 3/4 submission: 
 //Added the portfolios screen
@@ -36,6 +37,7 @@ export default function RootLayout() {
   return (
     <ThemeProvider value={TransparentTheme}>
       <AuthProvider>
+      <BookingDataProvider>
       <View style={styles.root}>
         <LinearGradient
           colors={gradientColors}
@@ -57,10 +59,14 @@ export default function RootLayout() {
             <Stack.Screen name="complete-profile" />
             <Stack.Screen name="verify-2fa" />
             <Stack.Screen name="manage-portfolio" />
+            <Stack.Screen name="book-appointment" />
+            <Stack.Screen name="my-services" />
+            <Stack.Screen name="guest-inspo-upload" />
           </Stack>
         </View>
       </View>
       <StatusBar style="light" />
+      </BookingDataProvider>
       </AuthProvider>
     </ThemeProvider>
   );

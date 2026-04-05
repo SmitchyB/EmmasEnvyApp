@@ -1,5 +1,6 @@
 import { useFocusEffect } from '@react-navigation/native'; // Import the useFocusEffect hook from @react-navigation/native
 import { Image } from 'expo-image'; // Import the Image component from expo-image
+import { useRouter } from 'expo-router'; // Import the useRouter hook from expo-router
 import { useCallback, useState } from 'react'; // Import the useState hook from react
 import {
   ActivityIndicator, 
@@ -12,12 +13,14 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context'; // Import the useSafeAreaInsets hook from react-native-safe-area-context
 import { getSiteSettings, type SiteSettings } from '@/lib/api'; // Import the getSiteSettings function and the SiteSettings type from @/lib/api
 import { uploadsUrl } from '@/constants/config'; // Import the uploadsUrl function from @/constants/config
-import { NavbarColors } from '@/constants/theme'; // Import the NavbarColors constant from @/constants/theme
+import { GradientColors, NavbarColors } from '@/constants/theme'; // Theme colors for CTA
 
 const HERO_HEIGHT = 220; // Define the height of the hero image
+const BOOK_CTA_LABEL = 'Book an appointment';
 const DEFAULT_TITLE = 'Emmas Envy'; // Define the default title of the home screen
 
 export default function HomeScreen() {
+  const router = useRouter(); // Router for book-appointment
   const insets = useSafeAreaInsets(); // Get the insets of the safe area
   const [settings, setSettings] = useState<SiteSettings | null>(null); // Set the settings to null
   const [loading, setLoading] = useState(true); // Set the loading to true
@@ -98,6 +101,13 @@ export default function HomeScreen() {
           </Pressable>
         </View>
       )}
+      <Pressable
+        onPress={() => router.push('/book-appointment')}
+        style={({ pressed }) => [styles.bookCta, pressed && styles.bookCtaPressed]}
+        accessibilityRole="button"
+        accessibilityLabel={BOOK_CTA_LABEL}>
+        <Text style={styles.bookCtaText}>{BOOK_CTA_LABEL}</Text>
+      </Pressable>
     </ScrollView>
   );
 }
@@ -182,5 +192,21 @@ const styles = StyleSheet.create({
     fontSize: 15,
     lineHeight: 22,
     color: NavbarColors.textMuted,
+  },
+  bookCta: {
+    marginTop: 8,
+    paddingVertical: 16,
+    paddingHorizontal: 20,
+    borderRadius: 12,
+    backgroundColor: GradientColors.pinkDark,
+    alignItems: 'center',
+  },
+  bookCtaPressed: {
+    opacity: 0.88,
+  },
+  bookCtaText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: NavbarColors.text,
   },
 });

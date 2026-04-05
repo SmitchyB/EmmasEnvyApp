@@ -45,30 +45,8 @@ function photoRowToJson(row) {
 
 const router = express.Router(); // Define the router
 
-// GET /api/portfolios – list visible portfolios with name and portrait from users
-router.get('/', async (req, res, next) => {
-  // Try to get the portfolios from the database
-  try {
-    // Query the portfolios table
-    const result = await db.pool.query(
-      `SELECT p.id, p.employee_id, p.description, p.visible, p.created_at, p.updated_at,
-              u.first_name, u.last_name, u.profile_picture
-       FROM ${PORTFOLIOS_TABLE} p
-       LEFT JOIN ${USERS_TABLE} u ON u.id = p.employee_id
-       WHERE p.visible = true
-       ORDER BY p.id`
-    );
-    const portfolios = result.rows.map(portfolioRowToJson); // Map the portfolios to a JSON object
-    res.json({ portfolios }); // Return the portfolios as a JSON object
-  } catch (err) {
-    console.error('[Portfolios] GET / error', err); // Log the error
-    return next(err); // Return the error
-  }
-});
-
-// GET /api/portfolios/primary – fixed portfolio id 1 when visible (must be before /:id)
+// GET /api/portfolios/primary – fixed portfolio id 1 when visible (before generic /:id admin routes)
 router.get('/primary', async (req, res, next) => {
-  console.log('[Portfolios] GET /primary requested'); // Log the request
   // Try to get the primary portfolio from the database
   try {
     const portfolioResult = await db.pool.query(
@@ -78,11 +56,9 @@ router.get('/primary', async (req, res, next) => {
        LEFT JOIN ${USERS_TABLE} u ON u.id = p.employee_id
        WHERE p.id = 1 AND p.visible = true`
     );
-    console.log('[Portfolios] GET /primary portfolio rows:', portfolioResult.rowCount); // Log the number of rows in the portfolio result
     const row = portfolioResult.rows[0]; // Set the row to the first row in the portfolio result
     // If the row is not found, return a 404 error
     if (!row) {
-      console.log('[Portfolios] GET /primary id=1 not visible or missing -> 404'); // Log the error
       return res.status(404).json({ error: 'No visible portfolio found' }); // Return a 404 error
     }
     const portfolio = portfolioRowToJson(row); // Set the portfolio to the portfolio row as a JSON object
@@ -94,11 +70,9 @@ router.get('/primary', async (req, res, next) => {
        ORDER BY COALESCE(sort_order, 0), id`,
       [portfolio.id]
     );
-    console.log('[Portfolios] GET /primary portfolio id=%s photos=%s', portfolio.id, photosResult.rowCount); // Log the portfolio id and the number of photos in the portfolio
     portfolio.photos = photosResult.rows.map(photoRowToJson); // Map the photos to a JSON object
     res.json({ portfolio }); // Return the portfolio as a JSON object
   } catch (err) {
-    console.error('[Portfolios] GET /primary error', err); // Log the error
     return next(err); // Return the error
   }
 });
@@ -134,7 +108,6 @@ router.get('/me', requireAuth, requireAdminOrIT, async (req, res, next) => {
     portfolio.photos = photosResult.rows.map(photoRowToJson); // Map the photos to a JSON object
     res.json({ portfolio }); // Return the portfolio as a JSON object
   } catch (err) {
-    console.error('[Portfolios] GET /me error', err); // Log the error
     return next(err); // Return the error
   }
 });
@@ -224,7 +197,6 @@ router.post('/me', requireAuth, requireAdminOrIT, async (req, res, next) => {
     portfolio.photos = photosResult.rows.map(photoRowToJson); // Map the photos to a JSON object
     res.json({ portfolio }); // Return the portfolio as a JSON object
   } catch (err) {
-    console.error('[Portfolios] POST /me error', err); // Log the error
     return next(err); // Return the error
   }
 });
@@ -278,7 +250,6 @@ router.post(
       try {
         fs.unlinkSync(req.file.path); // Delete the file
       } catch (_) {}
-      console.error('[Portfolios] POST /me/photos error', err); // Log the error
       return next(err); // Return the error
     }
   }
@@ -345,7 +316,6 @@ router.patch('/me/photos/:photoId', requireAuth, requireAdminOrIT, async (req, r
     if (!row) return res.status(404).json({ error: 'Photo not found' }); // Return a 404 error if the photo is not found
     res.json({ photo: photoRowToJson(row) }); // Return the photo as a JSON object
   } catch (err) {
-    console.error('[Portfolios] PATCH /me/photos/:photoId error', err); // Log the error
     return next(err); // Return the error
   }
 });
@@ -387,47 +357,6 @@ router.delete('/me/photos/:photoId', requireAuth, requireAdminOrIT, async (req, 
     }
     res.status(204).send(); // Return a 204 status
   } catch (err) {
-    console.error('[Portfolios] DELETE /me/photos/:photoId error', err); // Log the error
-    return next(err); // Return the error
-  }
-});
-
-// GET /api/portfolios/:id – single portfolio with photos
-router.get('/:id', async (req, res, next) => {
-  const id = parseInt(req.params.id, 10); // Set the id to the id from the request
-  // If the id is not a number, return a 400 error
-  if (Number.isNaN(id)) {
-    return res.status(400).json({ error: 'Invalid portfolio id' }); // Return a 400 error if the id is not a number
-  }
-  // Try to get the portfolio from the database
-  try {
-    // Query the portfolios table to get the portfolio
-    const portfolioResult = await db.pool.query(
-      `SELECT p.id, p.employee_id, p.description, p.visible, p.created_at, p.updated_at,
-              u.first_name, u.last_name, u.profile_picture
-       FROM ${PORTFOLIOS_TABLE} p
-       LEFT JOIN ${USERS_TABLE} u ON u.id = p.employee_id
-       WHERE p.id = $1`,
-      [id]
-    );
-    const row = portfolioResult.rows[0]; // Set the row to the first row in the result
-    // If the row is not found, return a 404 error
-    if (!row) {
-      return res.status(404).json({ error: 'Portfolio not found' }); // Return a 404 error if the portfolio is not found
-    }
-    const portfolio = portfolioRowToJson(row); // Set the portfolio to the portfolio row as a JSON object
-    // Query the portfolio photos table to get the photos
-    const photosResult = await db.pool.query(
-      `SELECT id, portfolio_id, url, caption, sort_order, created_at, updated_at
-       FROM ${PORTFOLIO_PHOTOS_TABLE}
-       WHERE portfolio_id = $1
-       ORDER BY COALESCE(sort_order, 0), id`,
-      [id]
-    );
-    portfolio.photos = photosResult.rows.map(photoRowToJson); // Map the photos to a JSON object
-    res.json({ portfolio }); // Return the portfolio as a JSON object
-  } catch (err) {
-    console.error('[Portfolios] GET /:id error', err); // Log the error
     return next(err); // Return the error
   }
 });
@@ -489,7 +418,6 @@ router.patch('/:id', requireAuth, requireAdmin, async (req, res, next) => {
     if (!row) return res.status(404).json({ error: 'Portfolio not found' }); // Return a 404 error if the portfolio is not found
     res.json({ portfolio: portfolioRowToJson(row) }); // Return the portfolio as a JSON object
   } catch (err) {
-    console.error('[Portfolios] PATCH /:id error', err); // Log the error 
     return next(err); // Return the error
   }
 });
@@ -542,7 +470,6 @@ router.post(
       try {
         fs.unlinkSync(req.file.path); // Delete the file
       } catch (_) {}
-      console.error('[Portfolios] POST /:id/photo error', err); // Log the error
       return next(err); // Return the error
     }
   }
@@ -604,7 +531,6 @@ router.patch('/:id/photos/:photoId', requireAuth, requireAdmin, async (req, res,
     if (!row) return res.status(404).json({ error: 'Photo not found' }); // Return a 404 error if the photo is not found
     res.json({ photo: photoRowToJson(row) }); // Return the photo as a JSON object
   } catch (err) {
-    console.error('[Portfolios] PATCH /:id/photos/:photoId error', err); // Log the error
     return next(err);
   }
 });
@@ -644,7 +570,6 @@ router.delete('/:id/photos/:photoId', requireAuth, requireAdmin, async (req, res
     }
     res.status(204).send(); // Return a 204 status
   } catch (err) {
-    console.error('[Portfolios] DELETE /:id/photos/:photoId error', err); // Log the error
     return next(err); // Return the error
   }
 });
