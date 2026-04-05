@@ -29,7 +29,6 @@ router.post('/request-data-export', requireAuth, async (req, res, next) => {
       ),
     ]);
     const user = userRow.rows[0];
-    const addresses = [];
     const invoices = invoicesResult.rows.map((r) => ({
       invoice_id: r.invoice_id,
       created_at: r.created_at,
@@ -52,7 +51,6 @@ router.post('/request-data-export', requireAuth, async (req, res, next) => {
             reward_points: user.reward_points != null ? parseInt(user.reward_points, 10) : 0,
           }
         : null,
-      addresses,
       invoices,
     };
     res.json({

@@ -209,9 +209,6 @@ export default function AccountScreen() { // Define the AccountScreen component
         <Pressable style={styles.menuButton} onPress={() => router.push('/settings')}>
           <Text style={styles.menuButtonText}>Settings</Text>
         </Pressable>
-        <Pressable style={styles.menuButton} onPress={() => router.push('/purchases')}>
-          <Text style={styles.menuButtonText}>Purchases</Text>
-        </Pressable>
         <Pressable style={[styles.menuButton, styles.signOutButton]} onPress={handleLogout} disabled={loading}>
           <Text style={styles.signOutButtonText}>{loading ? 'Signing out…' : 'Sign out'}</Text>
         </Pressable>

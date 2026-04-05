@@ -50,7 +50,7 @@ function assertStaffStatusTransition(currentRaw, nextRaw) {
   const next = normalizeApptStatus(nextRaw); // Convert the status to a string and trim the whitespace
   // If the next status is Paid, throw an error
   if (next === STATUS_PAID) {
-    const err = new Error('Use checkout to mark an appointment as paid'); // Create a new error
+    const err = new Error('Record payment to mark an appointment as paid'); // Create a new error
     err.statusCode = 400; // Set the status code to 400
     throw err; // Throw the error
   }
