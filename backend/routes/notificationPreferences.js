@@ -1,7 +1,7 @@
 /**
  * User notification preferences: GET and PATCH for current user.
- * GET /api/me/notification-preferences
- * PATCH /api/me/notification-preferences
+ * GET /api/notification-preferences
+ * PATCH /api/notification-preferences
  */
 
 const express = require('express');
@@ -25,19 +25,19 @@ const ALLOWED_KEYS = [
   'admin_rescheduled_apt',
 ];
 
-// GET /api/me/notification-preferences
-router.get('/notification-preferences', requireAuth, async (req, res, next) => {
+// GET /api/notification-preferences
+router.get('/', requireAuth, async (req, res, next) => {
   try {
     const prefs = await db.getNotificationPreferences(req.user.id);
     res.json({ preferences: prefs });
   } catch (err) {
-    console.error('[meNotificationPreferences] GET error', err);
+    console.error('[notificationPreferences] GET error', err);
     return next(err);
   }
 });
 
-// PATCH /api/me/notification-preferences
-router.patch('/notification-preferences', requireAuth, async (req, res, next) => {
+// PATCH /api/notification-preferences
+router.patch('/', requireAuth, async (req, res, next) => {
   try {
     const body = req.body?.preferences ?? req.body ?? {};
     const data = {};
@@ -51,7 +51,7 @@ router.patch('/notification-preferences', requireAuth, async (req, res, next) =>
     const prefs = await db.getNotificationPreferences(req.user.id);
     res.json({ preferences: prefs });
   } catch (err) {
-    console.error('[meNotificationPreferences] PATCH error', err);
+    console.error('[notificationPreferences] PATCH error', err);
     return next(err);
   }
 });

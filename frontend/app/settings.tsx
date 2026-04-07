@@ -3,6 +3,7 @@ import * as ImagePicker from 'expo-image-picker'; // Import the ImagePicker from
 import React, { useCallback, useEffect, useState } from 'react'; // Import the React, useCallback, useEffect, and useState from react for the state
 import {
   ActivityIndicator,
+  Alert,
   Image,
   KeyboardAvoidingView,
   Platform,
@@ -26,6 +27,7 @@ import {
   uploadProfilePhoto,
 } from '@/lib/auth-api'; // Import the getSessions, revokeSession, untrustSession, updateProfile, updateAccount, and uploadProfilePhoto from @/lib/auth-api for the authentication
 import { TwoFactorSection } from '@/components/TwoFactorSection'; // Import the TwoFactorSection from @/components/TwoFactorSection for the two factor section
+import { deleteAccountApi, requestDataExport, saveDataExportFile } from '@/lib/data-privacy-api';
 
 // Define the SettingsScreen component
 export default function SettingsScreen() {
@@ -49,6 +51,10 @@ export default function SettingsScreen() {
   const [newPhone, setNewPhone] = useState(''); // Get the new phone from the useState
   const [newPassword, setNewPassword] = useState(''); // Get the new password from the useState
   const [confirmPassword, setConfirmPassword] = useState(''); // Get the confirm password from the useState
+  const [exportBusy, setExportBusy] = useState(false);
+  const [deleteExpanded, setDeleteExpanded] = useState(false);
+  const [deletePassword, setDeletePassword] = useState('');
+  const [deleteBusy, setDeleteBusy] = useState(false);
   // Define the load sessions function
   const loadSessions = useCallback(async () => {
     // If the token is not valid, return
@@ -226,6 +232,63 @@ export default function SettingsScreen() {
     }
   };
 
+  const handleDownloadMyData = async () => {
+    if (!token) return;
+    setError(null);
+    setExportBusy(true);
+    try {
+      const { export: exported } = await requestDataExport(token);
+      await saveDataExportFile(exported);
+      Alert.alert(
+        'Download',
+        'Your data export is ready. Use Save to Files or another app from the share sheet. If sharing is not available, the JSON is copied to your clipboard.'
+      );
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to export data');
+    } finally {
+      setExportBusy(false);
+    }
+  };
+
+  const handleConfirmDeleteAccount = () => {
+    Alert.alert(
+      'Delete account?',
+      'This will mark your account as deleted and sign you out. This cannot be undone from the app.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Continue',
+          style: 'destructive',
+          onPress: () => {
+            setDeleteExpanded(true);
+            setDeletePassword('');
+            setError(null);
+          },
+        },
+      ]
+    );
+  };
+
+  const handleDeleteAccount = async () => {
+    if (!token) return;
+    if (!deletePassword.trim()) {
+      setError('Enter your password to delete your account');
+      return;
+    }
+    setError(null);
+    setDeleteBusy(true);
+    try {
+      await deleteAccountApi(token, deletePassword);
+      setDeleteExpanded(false);
+      setDeletePassword('');
+      await logout();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to delete account');
+    } finally {
+      setDeleteBusy(false);
+    }
+  };
+
   // If the user is not valid, return the sign in to access settings component
   if (!user) {
     return (
@@ -327,6 +390,44 @@ export default function SettingsScreen() {
           </View>
         ))
       )}
+
+      <Text style={styles.sectionTitle}>Data & privacy</Text>
+      <Text style={styles.mutedText}>Download a copy of the profile and invoice data we store for your account, or permanently delete your account.</Text>
+      <Pressable style={[styles.primaryButton, exportBusy && styles.buttonDisabled]} onPress={handleDownloadMyData} disabled={exportBusy}>
+        {exportBusy ? <ActivityIndicator color="#fff" size="small" /> : <Text style={styles.primaryButtonText}>Download my data</Text>}
+      </Pressable>
+      {!deleteExpanded ? (
+        <Pressable style={[styles.secondaryButton, styles.dangerOutline]} onPress={handleConfirmDeleteAccount}>
+          <Text style={styles.secondaryButtonText}>Delete account</Text>
+        </Pressable>
+      ) : (
+        <>
+          <Text style={styles.mutedText}>Enter your password to confirm account deletion.</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="Password"
+            placeholderTextColor={NavbarColors.textMuted}
+            value={deletePassword}
+            onChangeText={setDeletePassword}
+            secureTextEntry
+            editable={!deleteBusy}
+          />
+          <View style={styles.rowButtons}>
+            <Pressable
+              style={styles.secondaryButton}
+              onPress={() => {
+                setDeleteExpanded(false);
+                setDeletePassword('');
+              }}
+              disabled={deleteBusy}>
+              <Text style={styles.secondaryButtonText}>Cancel</Text>
+            </Pressable>
+            <Pressable style={[styles.primaryButton, styles.dangerButton, deleteBusy && styles.buttonDisabled]} onPress={handleDeleteAccount} disabled={deleteBusy}>
+              {deleteBusy ? <ActivityIndicator color="#fff" size="small" /> : <Text style={styles.primaryButtonText}>Delete permanently</Text>}
+            </Pressable>
+          </View>
+        </>
+      )}
     </ScrollView>
   );
 
@@ -386,4 +487,6 @@ const styles = StyleSheet.create({
   sessionDevice: { color: NavbarColors.text, fontSize: 15, fontWeight: '500' },
   trustedBadge: { color: GradientColors.pinkLight, fontSize: 12, marginTop: 4 },
   sessionActions: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 8 },
+  dangerOutline: { borderColor: 'rgba(255,100,100,0.6)', borderWidth: 1 },
+  dangerButton: { backgroundColor: 'rgba(180,60,60,0.95)' },
 });

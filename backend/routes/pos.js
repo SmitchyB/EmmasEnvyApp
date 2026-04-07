@@ -110,11 +110,21 @@ router.post('/record-payment', requireAuth, async (req, res, next) => {
         if (rewardOfferingId != null && !Number.isNaN(rewardOfferingId)) {
           if (customerId != null) {
             const offResult = await client.query(
-              `SELECT id, point_cost, min_purchase_amount, is_active FROM ${REWARD_OFFERINGS_TABLE} WHERE id = $1`,
+              `SELECT id, point_cost, min_purchase_amount, is_active, service_type_id FROM ${REWARD_OFFERINGS_TABLE} WHERE id = $1`,
               [rewardOfferingId]
             );
             const offering = offResult.rows[0];
             if (offering && offering.is_active) {
+              const offeringServiceTypeId =
+                offering.service_type_id != null ? parseInt(offering.service_type_id, 10) : null;
+              if (
+                offeringServiceTypeId != null &&
+                !Number.isNaN(offeringServiceTypeId) &&
+                (serviceTypeId == null || Number.isNaN(serviceTypeId) || serviceTypeId !== offeringServiceTypeId)
+              ) {
+                await client.query('ROLLBACK');
+                return res.status(400).json({ error: 'Reward offering does not apply to this service type' });
+              }
               const pointCost = parseInt(offering.point_cost, 10) || 0;
               const userPointsRow = await client.query(`SELECT reward_points FROM ${USERS_TABLE} WHERE id = $1`, [
                 customerId,

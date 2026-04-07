@@ -2,11 +2,11 @@ const express = require('express'); // Import the express module
 const db = require('../lib/db'); // Import the db module
 const { requireAuth } = require('../middleware/auth'); // Import the requireAuth middleware
 
-const router = express.Router(); // Create a router for /api/me/* invoice and reward routes
+const router = express.Router(); // Mounted at /api/invoices
 const INVOICES_TABLE = 'emmasenvy.invoices'; // Qualified invoices table name
 const REWARD_OFFERINGS_TABLE = 'emmasenvy.reward_offerings'; // Join for reward titles on invoices
 
-// GET /api/me/rewards – points and reward redemption history (invoices where user spent points)
+// GET /api/invoices/rewards – points and reward redemption history (invoices where user spent points)
 router.get('/rewards', requireAuth, async (req, res, next) => {
   try {
     const userId = req.user.id; // Authenticated user id
@@ -32,13 +32,13 @@ router.get('/rewards', requireAuth, async (req, res, next) => {
     }));
     res.json({ points, reward_history }); // Balance plus redemption rows
   } catch (err) {
-    console.error('[meInvoices] GET /rewards error', err); // Log the error
+    console.error('[invoices] GET /rewards error', err); // Log the error
     return next(err); // Pass the error to the Express error handler
   }
 });
 
-// GET /api/me/invoices – list invoices for the current user (customer_id = req.user.id)
-router.get('/invoices', requireAuth, async (req, res, next) => {
+// GET /api/invoices – list invoices for the current user (customer_id = req.user.id)
+router.get('/', requireAuth, async (req, res, next) => {
   try {
     const result = await db.pool.query(
       `SELECT id, invoice_id, created_at, total_amount, currency, payment_status, appointment_id, service_title
@@ -59,13 +59,13 @@ router.get('/invoices', requireAuth, async (req, res, next) => {
     }));
     res.json({ invoices }); // List for account / invoices UI
   } catch (err) {
-    console.error('[meInvoices] GET /invoices error', err); // Log the error
+    console.error('[invoices] GET / error', err); // Log the error
     return next(err); // Pass the error to the Express error handler
   }
 });
 
-// GET /api/me/invoices/:id – single invoice (line detail from service_title on invoice row)
-router.get('/invoices/:id', requireAuth, async (req, res, next) => {
+// GET /api/invoices/:id – single invoice (line detail from service_title on invoice row)
+router.get('/:id', requireAuth, async (req, res, next) => {
   const id = parseInt(req.params.id, 10); // Invoice id from URL
   if (Number.isNaN(id)) {
     return res.status(400).json({ error: 'Invalid invoice id' }); // Reject non-numeric id
@@ -117,7 +117,7 @@ router.get('/invoices/:id', requireAuth, async (req, res, next) => {
       },
     });
   } catch (err) {
-    console.error('[meInvoices] GET /invoices/:id error', err); // Log the error
+    console.error('[invoices] GET /:id error', err); // Log the error
     return next(err); // Pass the error to the Express error handler
   }
 });
