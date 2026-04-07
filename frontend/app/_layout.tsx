@@ -61,7 +61,7 @@ export default function RootLayout() {
             <Stack.Screen name="manage-portfolio" />
             <Stack.Screen name="book-appointment" />
             <Stack.Screen name="my-services" />
-            <Stack.Screen name="guest-inspo-upload" />
+            <Stack.Screen name="newsletters-promos" />
           </Stack>
         </View>
       </View>

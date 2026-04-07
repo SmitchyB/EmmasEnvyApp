@@ -13,7 +13,6 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context'; // Import the useSafeAreaInsets module from the react-native-safe-area-context library 
 import { PortfolioPickerModal } from '@/components/booking/PortfolioPickerModal'; // Import the PortfolioPickerModal module from the components/booking/PortfolioPickerModal file
-import { StaffInspoQrModal } from '@/components/booking/StaffInspoQrModal'; // Import the StaffInspoQrModal module from the components/booking/StaffInspoQrModal file
 import { NavbarColors } from '@/constants/theme'; // Import the NavbarColors module from the constants/theme file
 import { useAuth } from '@/contexts/AuthContext'; // Import the useAuth module from the contexts/AuthContext file
 import { useBookingData } from '@/contexts/BookingDataContext'; // Import the useBookingData module from the contexts/BookingDataContext file
@@ -55,7 +54,7 @@ export default function BookAppointmentScreen() {
   const { user, token } = useAuth(); // Optional session for client_id and availability auth
   const { refreshAppointments } = useBookingData(); // Invalidate cached lists after create
   const params = useLocalSearchParams<{ portfolioPhotoIds?: string }>(); // Deep link from portfolio picker
-  const isStaff = isStaffRole(user?.role); // Staff see extra QR affordances after booking
+  const isStaff = isStaffRole(user?.role); // Staff can add device photos when booking for someone else
   const [serviceTypes, setServiceTypes] = useState<ServiceType[]>([]); // Public catalog rows
   const [servicesLoading, setServicesLoading] = useState(true); // Initial catalog fetch flag
   const [slots, setSlots] = useState<string[]>([]); // HH:MM start labels from availability API
@@ -70,9 +69,6 @@ export default function BookAppointmentScreen() {
   const [notes, setNotes] = useState(''); // Optional free text; defaults to service title
   const [inspoUris, setInspoUris] = useState<string[]>([]); // Local file or remote paths for upload
   const [portfolioOpen, setPortfolioOpen] = useState(false); // PortfolioPickerModal visibility
-  const [staffQrOpen, setStaffQrOpen] = useState(false); // StaffInspoQrModal visibility
-  const [lastCreatedId, setLastCreatedId] = useState<number | null>(null); // New row id for QR modal
-  const [lastCreatedInspoCount, setLastCreatedInspoCount] = useState(0); // Baseline count for QR copy text
 
   // Load bookable service types once on mount (public endpoint)
   useEffect(() => {
@@ -219,7 +215,7 @@ export default function BookAppointmentScreen() {
     // Try to create the appointment
     try {
       // Create the appointment
-      const appointment = await createAppointment(
+      await createAppointment(
         {
           client_id: user?.id ?? null, // Link logged-in customer when present
           client_name: clientName.trim(), // Trim the client name
@@ -234,16 +230,10 @@ export default function BookAppointmentScreen() {
         },
         token
       );
-      setLastCreatedId(appointment.id); // Drive QR modal and footer link
-      setLastCreatedInspoCount(appointment.inspo_pics?.length ?? 0); // Count after server normalization
       await refreshAppointments(); // Sync tabs and context cache
       // If the user is a staff member, show an alert
       if (isStaff) {
-        // Show an alert to the user that the appointment has been created
-        Alert.alert('Appointment created', 'You can share the customer upload QR now, or close to finish.', [
-          { text: 'Customer upload QR', onPress: () => setStaffQrOpen(true) }, // Set the staff qr open state to true
-          { text: 'Done', onPress: () => router.back() }, // Go back to the previous screen
-        ]);
+        Alert.alert('Appointment created', undefined, [{ text: 'OK', onPress: () => router.back() }]);
       } else {
         // Show an alert to the user that the appointment has been created
         Alert.alert('Request sent', 'Your appointment is pending confirmation.', [
@@ -371,23 +361,30 @@ export default function BookAppointmentScreen() {
 
         {step === 5 && (
           <View style={styles.form}>
-            <Text style={styles.muted}>
-              Add reference images from your device{isStaff ? '' : ' or from the portfolio'}.
-            </Text>
-            {!isStaff && (
-              <Pressable style={styles.actionBtn} onPress={() => setPortfolioOpen(true)}>
-                <Text style={styles.actionBtnText}>Choose from portfolio</Text>
-              </Pressable>
+            {isStaff ? (
+              <>
+                <Text style={styles.muted}>
+                  Add reference images from the portfolio or this device when booking on someone’s behalf.
+                </Text>
+                <Pressable style={styles.actionBtn} onPress={() => setPortfolioOpen(true)}>
+                  <Text style={styles.actionBtnText}>Browse portfolio</Text>
+                </Pressable>
+                <Pressable style={styles.actionBtn} onPress={pickDeviceImages}>
+                  <Text style={styles.actionBtnText}>Upload from this device</Text>
+                </Pressable>
+              </>
+            ) : (
+              <>
+                <Text style={styles.muted}>
+                  Choose reference looks from the stylist’s portfolio here, or text reference photos to your stylist—you
+                  don’t need to upload images in the app.
+                </Text>
+                <Pressable style={styles.actionBtn} onPress={() => setPortfolioOpen(true)}>
+                  <Text style={styles.actionBtnText}>Choose from portfolio</Text>
+                </Pressable>
+              </>
             )}
-            {isStaff && (
-              <Pressable style={styles.actionBtn} onPress={() => setPortfolioOpen(true)}>
-                <Text style={styles.actionBtnText}>Browse portfolio (modal)</Text>
-              </Pressable>
-            )}
-            <Pressable style={styles.actionBtn} onPress={pickDeviceImages}>
-              <Text style={styles.actionBtnText}>{isStaff ? 'Upload from this device' : 'Upload from device'}</Text>
-            </Pressable>
-            <Text style={styles.meta}>Selected: {inspoUris.length} image(s)</Text>
+            <Text style={styles.meta}>Selected from portfolio/device: {inspoUris.length} image(s)</Text>
           </View>
         )}
       </ScrollView>
@@ -411,12 +408,6 @@ export default function BookAppointmentScreen() {
         )}
       </View>
 
-      {isStaff && lastCreatedId != null ? (
-        <Pressable style={styles.qrLink} onPress={() => setStaffQrOpen(true)}>
-          <Text style={styles.qrLinkText}>Open customer inspiration QR</Text>
-        </Pressable>
-      ) : null}
-
       <PortfolioPickerModal
         visible={portfolioOpen}
         onClose={() => setPortfolioOpen(false)}
@@ -424,12 +415,6 @@ export default function BookAppointmentScreen() {
         onConfirm={(paths) => {
           setInspoUris((prev) => [...new Set([...prev, ...paths])]);
         }}
-      />
-      <StaffInspoQrModal
-        visible={staffQrOpen}
-        appointmentId={lastCreatedId}
-        initialInspoCount={lastCreatedInspoCount}
-        onClose={() => setStaffQrOpen(false)}
       />
     </View>
   );
@@ -597,14 +582,5 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontWeight: '700',
     fontSize: 16,
-  },
-  qrLink: {
-    marginTop: 10,
-    alignItems: 'center',
-  },
-  qrLinkText: {
-    color: NavbarColors.text,
-    textDecorationLine: 'underline',
-    fontSize: 14,
   },
 });

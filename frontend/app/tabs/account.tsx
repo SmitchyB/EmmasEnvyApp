@@ -206,6 +206,11 @@ export default function AccountScreen() { // Define the AccountScreen component
             <Text style={styles.menuButtonText}>My Services</Text>
           </Pressable>
         )}
+        {canManagePortfolio && (
+          <Pressable style={styles.menuButton} onPress={() => router.push('/newsletters-promos')}>
+            <Text style={styles.menuButtonText}>Newsletters/Promos</Text>
+          </Pressable>
+        )}
         <Pressable style={styles.menuButton} onPress={() => router.push('/settings')}>
           <Text style={styles.menuButtonText}>Settings</Text>
         </Pressable>

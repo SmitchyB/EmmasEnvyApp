@@ -24,7 +24,6 @@ const STATUS_COMPLETE = 'Complete'; // Import the STATUS_COMPLETE module from th
 const STATUS_PAID = 'Paid'; // Import the STATUS_PAID module from the constants module
 const WORKFLOW_STATUSES = [STATUS_PENDING, STATUS_CONFIRMED, STATUS_CHECKED_IN, STATUS_IN_PROGRESS, STATUS_COMPLETE, STATUS_PAID]; // Ordered workflow statuses for staff transitions
 const JWT_SECRET = process.env.JWT_SECRET; // Import the JWT_SECRET module from the constants module
-const INSPO_GUEST_JWT_EXPIRES = process.env.INSPO_GUEST_JWT_EXPIRES || '3d'; // Import the INSPO_GUEST_JWT_EXPIRES module from the constants module
 
 // Define the isStaffRole function
 function isStaffRole(user) {
@@ -351,63 +350,6 @@ router.get('/', requireAuth, async (req, res, next) => {
   }
 });
 
-// PATCH /api/appointments/inspo-guest – no auth; JWT QR Code from staff "inspo upload" 
-router.patch('/inspo-guest', async (req, res, next) => {
-  // Try to get the token and inspo pics
-  try {
-    // If the JWT secret is not set, return an error
-    if (!JWT_SECRET) {
-      return res.status(500).json({ error: 'Server misconfigured' }); // Return an error if the JWT secret is not set
-    }
-    const body = req.body || {}; // Get the body from the request
-    const token = typeof body.token === 'string' ? body.token.trim() : ''; // Get the token from the body
-    let append = body.inspo_pics; // Get the inspo pics from the body
-    if (append != null && !Array.isArray(append)) append = [append]; // If the inspo pics is not an array, convert it to an array
-    // If the token or inspo pics is not set, return an error
-    if (!token || !append || append.length === 0) {
-      return res.status(400).json({ error: 'token and inspo_pics (non-empty array) are required' }); // Return an error if the token or inspo pics is not set
-    }
-    let decoded; // Set the decoded to null
-    // Try to verify the token
-    try {
-      decoded = jwt.verify(token, JWT_SECRET); // Verify the token
-    } catch {
-      return res.status(401).json({ error: 'Invalid or expired token' }); // Return an error if the token is invalid or expired
-    }
-    // If the token is not a guest token or the appointment id is not set, return an error
-    if (!decoded.inspoGuest || decoded.appointmentId == null) {
-      return res.status(401).json({ error: 'Invalid token' }); // Return an error if the token is invalid
-    }
-    // If the appointment id is not a number, convert it to an integer
-    const appointmentId =
-      typeof decoded.appointmentId === 'number' 
-        ? decoded.appointmentId
-        : parseInt(String(decoded.appointmentId), 10);
-    if (Number.isNaN(appointmentId)) return res.status(400).json({ error: 'Invalid appointment in token' }); // Return an error if the appointment id is not a number
-    // Query the appointment
-    const curRes = await db.pool.query(
-      `SELECT id, inspo_pics FROM ${APPOINTMENTS_TABLE} WHERE id = $1`, // Query the appointment
-      [appointmentId] // Parameters for the query
-    );
-    const row = curRes.rows[0]; // Get the appointment from the result
-    if (!row) return res.status(404).json({ error: 'Appointment not found' }); // Return an error if the appointment is not found
-    let existing = []; // Set the existing to an empty array
-    if (Array.isArray(row.inspo_pics)) existing = row.inspo_pics; // If the inspo pics is an array, set the existing to the inspo pics
-    else if (row.inspo_pics != null) existing = [row.inspo_pics]; // If the inspo pics is not an array, set the existing to the inspo pics
-    const nextPics = [...existing, ...append.map((x) => String(x))]; // Set the next pics to the existing pics and the append pics
-    const now = new Date(); // Get the current date
-    // Update the appointment
-    await db.pool.query(
-      `UPDATE ${APPOINTMENTS_TABLE} SET inspo_pics = $1, updated_at = $2 WHERE id = $3`, // Update the appointment
-      [nextPics, now, appointmentId] // Parameters for the query
-    );
-    res.json({ success: true, count: nextPics.length }); // Return the success and the count of the next pics
-  } catch (err) {
-    console.error('[Appointments] PATCH /inspo-guest error', err); // Log the error
-    return next(err); // Pass the error to the Express error handler
-  }
-});
-
 // GET /api/appointments/:id
 router.get('/:id', requireAuth, async (req, res, next) => {
   // Try to get the id
@@ -540,31 +482,6 @@ router.post('/', optionalAuth, async (req, res, next) => {
     }
   } catch (err) {
     console.error('[Appointments] POST / error', err); // Log the error 
-    return next(err); // Pass the error to the Express error handler
-  }
-});
-
-// POST /api/appointments/:id/inspo-upload-token – staff JWT for customer phone upload flow
-router.post('/:id/inspo-upload-token', requireAuth, requireAdminOrIT, async (req, res, next) => {
-  // Try to get the token
-  try {
-    // If the JWT secret is not set, return an error
-    if (!JWT_SECRET) {
-      return res.status(500).json({ error: 'Server misconfigured' }); // Reject if JWT cannot be signed
-    }
-    const id = parseInt(req.params.id, 10); // Parse appointment id from the URL
-    if (Number.isNaN(id)) return res.status(400).json({ error: 'Invalid id' }); // Reject non-numeric id
-    const check = await db.pool.query(`SELECT id FROM ${APPOINTMENTS_TABLE} WHERE id = $1`, [id]); // Ensure appointment exists
-    if (!check.rows[0]) return res.status(404).json({ error: 'Appointment not found' }); // If the appointment is not found, return an error
-    // Sign the token
-    const token = jwt.sign(
-      { inspoGuest: true, appointmentId: id }, // Payload for guest inspo PATCH route
-      JWT_SECRET, // Signing secret
-      { expiresIn: INSPO_GUEST_JWT_EXPIRES } // Short-lived token for phone upload flow
-    );
-    res.json({ token }); // Return token for the client to open or share guest upload
-  } catch (err) {
-    console.error('[Appointments] POST /:id/inspo-upload-token error', err); // Log the error
     return next(err); // Pass the error to the Express error handler
   }
 });

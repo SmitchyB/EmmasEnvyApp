@@ -1,6 +1,6 @@
 const express = require('express');
 const db = require('../lib/db');
-const { requireAuth, requireAdmin } = require('../middleware/auth');
+const { requireAuth, requireAdminOrIT } = require('../middleware/auth');
 
 const router = express.Router();
 const TABLE = 'emmasenvy.newsletters';
@@ -21,7 +21,7 @@ function rowToNewsletter(row) {
 }
 
 // GET /api/newsletters – list all (admin); optional ?status=draft|sent
-router.get('/', requireAuth, requireAdmin, async (req, res, next) => {
+router.get('/', requireAuth, requireAdminOrIT, async (req, res, next) => {
   try {
     const status = req.query.status; // 'draft' | 'sent' or omit for all
     let where = '';
@@ -48,7 +48,7 @@ router.get('/', requireAuth, requireAdmin, async (req, res, next) => {
 });
 
 // GET /api/newsletters/:id – get one (admin)
-router.get('/:id', requireAuth, requireAdmin, async (req, res, next) => {
+router.get('/:id', requireAuth, requireAdminOrIT, async (req, res, next) => {
   try {
     const id = parseInt(req.params.id, 10);
     if (Number.isNaN(id)) return res.status(400).json({ error: 'Invalid id' });
@@ -68,7 +68,7 @@ router.get('/:id', requireAuth, requireAdmin, async (req, res, next) => {
 });
 
 // POST /api/newsletters – create draft (admin)
-router.post('/', requireAuth, requireAdmin, async (req, res, next) => {
+router.post('/', requireAuth, requireAdminOrIT, async (req, res, next) => {
   try {
     const userId = req.user?.id;
     if (!userId) return res.status(401).json({ error: 'User not found' });
@@ -106,7 +106,7 @@ router.post('/', requireAuth, requireAdmin, async (req, res, next) => {
 });
 
 // PATCH /api/newsletters/:id – update draft only (admin)
-router.patch('/:id', requireAuth, requireAdmin, async (req, res, next) => {
+router.patch('/:id', requireAuth, requireAdminOrIT, async (req, res, next) => {
   try {
     const id = parseInt(req.params.id, 10);
     if (Number.isNaN(id)) return res.status(400).json({ error: 'Invalid id' });
@@ -167,7 +167,7 @@ router.patch('/:id', requireAuth, requireAdmin, async (req, res, next) => {
 });
 
 // POST /api/newsletters/:id/send – mark as sent (admin)
-router.post('/:id/send', requireAuth, requireAdmin, async (req, res, next) => {
+router.post('/:id/send', requireAuth, requireAdminOrIT, async (req, res, next) => {
   try {
     const id = parseInt(req.params.id, 10);
     if (Number.isNaN(id)) return res.status(400).json({ error: 'Invalid id' });
@@ -199,7 +199,7 @@ router.post('/:id/send', requireAuth, requireAdmin, async (req, res, next) => {
 });
 
 // DELETE /api/newsletters/:id – drafts only (admin)
-router.delete('/:id', requireAuth, requireAdmin, async (req, res, next) => {
+router.delete('/:id', requireAuth, requireAdminOrIT, async (req, res, next) => {
   try {
     const id = parseInt(req.params.id, 10);
     if (Number.isNaN(id)) return res.status(400).json({ error: 'Invalid id' });

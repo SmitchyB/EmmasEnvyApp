@@ -230,31 +230,6 @@ export async function uploadAppointmentFinishedPhoto(
   throw lastError ?? new Error('Upload failed'); // Should not reach; satisfies TypeScript
 }
 
-// Function to mint a short-lived JWT for guest inspiration uploads tied to an appointment
-export async function requestInspoUploadToken(token: string, appointmentId: number): Promise<string> {
-  // Fetch the inspo upload token endpoint
-  const res = await fetchWithAuth(
-    apiUrl(`/api/appointments/${appointmentId}/inspo-upload-token`), // API URL for the inspo upload token endpoint
-    { method: 'POST', headers: { Accept: 'application/json' } }, // Headers for the request
-    token // Token for the requestInspoUploadToken function
-  );
-  if (!res.ok) throw new Error(await readError(res)); // If the response is not ok, throw an error
-  const data = (await res.json()) as { token?: string }; // Parse the response as a string
-  if (!data.token) throw new Error('No token returned'); // Contract guard
-  return data.token; // Return the token
-}
-
-// Function to append relative inspo paths using guest JWT (no staff session)
-export async function appendInspoGuest(jwtToken: string, inspoPics: string[]): Promise<void> {
-  // Fetch the append inspo guest endpoint
-  const res = await fetch(apiUrl('/api/appointments/inspo-guest'), {
-    method: 'PATCH', // PATCH request to the append inspo guest endpoint
-    headers: { Accept: 'application/json', 'Content-Type': 'application/json' }, // Headers for the request
-    body: JSON.stringify({ token: jwtToken, inspo_pics: inspoPics }), // Body for the request
-  });
-  if (!res.ok) throw new Error(await readError(res)); // 4xx/5xx bubble up
-}
-
 // Function to load all public bookable service types (no auth)
 export async function fetchPublicServiceTypes(): Promise<ServiceType[]> {
   const res = await fetch(apiUrl('/api/service-types/public'), {

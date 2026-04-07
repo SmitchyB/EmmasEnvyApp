@@ -1,4 +1,5 @@
-/** Function for staff-only features. */
+/** Function for staff-only features (Admin / IT). Case-insensitive vs DB casing. */
 export function isStaffRole(role: string | undefined | null): boolean {
-  return role === 'Admin' || role === 'IT';
+  const r = role ? String(role).toLowerCase() : '';
+  return r === 'admin' || r === 'it';
 }
