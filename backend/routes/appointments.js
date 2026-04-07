@@ -33,13 +33,13 @@ function isStaffRole(user) {
   return r === 'admin' || r === 'it'; // Return true if the role is admin or it
 }
 
-// Define the normalizeApptStatus function
+// Define the normalizeApptStatus function to normalize the appointment status
 function normalizeApptStatus(s) {
   const t = String(s || '').trim(); // Convert the status to a string and trim the whitespace
   if (t === 'Completed') return STATUS_COMPLETE; // If the status is Completed, return the STATUS_COMPLETE module
   return t; // Return the status
 }
-// Define the workflowIndex function
+// Define the workflowIndex function to get the index of the status in the WORKFLOW_STATUSES array
 function workflowIndex(status) {
   const n = normalizeApptStatus(status); // Convert the status to a string and trim the whitespace
   return WORKFLOW_STATUSES.indexOf(n); // Return the index of the status in the WORKFLOW_STATUSES array
@@ -79,7 +79,7 @@ function assertStaffStatusTransition(currentRaw, nextRaw) {
     throw err; // Throw the error
   }
 }
-// Function to select the appointment from the joins
+// Function to select the appointment from the joins 
 function appointmentSelectFromJoins() {
   return `a.id, a.client_id, a.client_name, a.client_email, a.client_phone, a.employee_id, a.date, a.time, a.description, a.inspo_pics, a.completed_photos, a.status, a.created_by, a.created_at, a.updated_at, a.duration, a.invoice_id, a.service_type_id,
     a.confirmed_at, a.checked_in_at, a.in_progress_at, a.completed_at, a.paid_at, a.canceled_at, a.rescheduled_at,
@@ -351,7 +351,7 @@ router.get('/', requireAuth, async (req, res, next) => {
   }
 });
 
-// PATCH /api/appointments/inspo-guest – no auth; JWT from staff "inspo upload" flow
+// PATCH /api/appointments/inspo-guest – no auth; JWT QR Code from staff "inspo upload" 
 router.patch('/inspo-guest', async (req, res, next) => {
   // Try to get the token and inspo pics
   try {

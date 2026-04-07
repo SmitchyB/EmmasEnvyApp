@@ -33,9 +33,7 @@ import type { Appointment, ServiceType } from '@/lib/booking-types'; // Import t
 import { STATUS_CANCELED } from '@/lib/booking-constants'; // Import the STATUS_CANCELED module from the booking-constants file
 import { isStaffRole } from '@/lib/roles'; // Import the isStaffRole module from the roles file
 
-/** Business is in Colorado Springs; appointment date is the calendar day, time is local wall clock there. */
 const BUSINESS_TZ = 'America/Denver'; // Import the BUSINESS_TZ module from the booking-constants file
-
 const DETAIL_MODAL_MAX_SCROLL = Math.round(Dimensions.get('window').height * 0.72); // Import the DETAIL_MODAL_MAX_SCROLL module from the booking-constants file
 
 //Function to parse the appointment minutes
@@ -225,8 +223,7 @@ export default function AppointmentsTabScreen() {
   const [staffInspoGalleryOpen, setStaffInspoGalleryOpen] = useState(false); // Set the staff inspiration gallery open state to false
   const [staffAfterGalleryOpen, setStaffAfterGalleryOpen] = useState(false); // Set the staff after gallery open state to false
   const payStatus = detail?.invoice_payment_status ?? '—'; // Get the payment status
-  
-  // Function to get the service title
+  // Get the service title
   const serviceTitle =
     // If the service type title is not null and the service type title is not an empty string, return the service type title
     (detail?.service_type_title && String(detail.service_type_title).trim()) || 
