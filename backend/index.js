@@ -12,15 +12,13 @@ const authRoutes = require('./routes/auth'); // Import the auth routes
 const portfolioRoutes = require('./routes/portfolios'); // Import the portfolio routes
 const serviceTypesRoutes = require('./routes/serviceTypes'); // Import the service types routes
 const appointmentsRoutes = require('./routes/appointments'); // Import the appointments routes
-const supportTicketsRoutes = require('./routes/supportTickets'); // Import the support tickets routes
 const promoCodesRoutes = require('./routes/promoCodes'); // Import the promo codes routes
 const rewardOfferingsRoutes = require('./routes/rewardOfferings'); // Import the reward offerings routes
 const newslettersRoutes = require('./routes/newsletters'); // Import the newsletters routes
 const posRoutes = require('./routes/pos'); // Import the pos routes
-const meInvoicesRoutes = require('./routes/meInvoices'); // Import the me invoices routes
-const meSupportTicketsRoutes = require('./routes/meSupportTickets'); // Import the me support tickets routes
-const meNotificationPreferencesRoutes = require('./routes/meNotificationPreferences'); // Import the me notification preferences routes
-const meDataPrivacyRoutes = require('./routes/meDataPrivacy'); // Import the me data privacy routes
+const invoicesRoutes = require('./routes/invoices'); // Import the invoices routes
+const notificationPreferencesRoutes = require('./routes/notificationPreferences'); // Import the notification preferences routes
+const dataPrivacyRoutes = require('./routes/dataPrivacy'); // Import the data privacy routes
 const siteSettingsRoutes = require('./routes/siteSettings'); // Import the site settings routes
 const UPLOADS_DIR = path.join(__dirname, 'uploads'); // Define the uploads directory
 const PROFILE_PHOTOS_DIR = path.join(UPLOADS_DIR, 'profile_photos');
@@ -45,15 +43,13 @@ app.use('/api/auth', authRoutes); // Mount the auth routes
 app.use('/api/portfolios', portfolioRoutes); // Mount the portfolio routes
 app.use('/api/service-types', serviceTypesRoutes); // Mount the service types routes
 app.use('/api/appointments', appointmentsRoutes); // Mount the appointments routes
-app.use('/api/support-tickets', supportTicketsRoutes); // Mount the support tickets routes
 app.use('/api/promo-codes', promoCodesRoutes); // Mount the promo codes routes
 app.use('/api/reward-offerings', rewardOfferingsRoutes); // Mount the reward offerings routes
 app.use('/api/newsletters', newslettersRoutes); // Mount the newsletters routes
 app.use('/api/pos', posRoutes); // Mount the pos routes
-app.use('/api/me', meInvoicesRoutes); // Mount the me invoices routes
-app.use('/api/me', meSupportTicketsRoutes); // Mount the me support tickets routes
-app.use('/api/me', meNotificationPreferencesRoutes); // Mount the me notification preferences routes
-app.use('/api/me', meDataPrivacyRoutes); // Mount the me data privacy routes
+app.use('/api/invoices', invoicesRoutes); // Mount the invoices routes
+app.use('/api/notification-preferences', notificationPreferencesRoutes); // Mount the notification preferences routes
+app.use('/api/data-privacy', dataPrivacyRoutes); // Mount the data privacy routes
 app.use('/api/site-settings', siteSettingsRoutes); // Mount the site settings routes
 app.use('/uploads', express.static(UPLOADS_DIR)); // Mount the uploads directory
 

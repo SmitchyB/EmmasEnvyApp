@@ -62,6 +62,7 @@ export default function RootLayout() {
             <Stack.Screen name="book-appointment" />
             <Stack.Screen name="my-services" />
             <Stack.Screen name="newsletters-promos" />
+            <Stack.Screen name="rewards" />
           </Stack>
         </View>
       </View>

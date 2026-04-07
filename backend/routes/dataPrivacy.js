@@ -1,7 +1,7 @@
 /**
  * Data & privacy: request data export, delete account.
- * POST /api/me/request-data-export
- * POST /api/me/delete-account (body: { password })
+ * POST /api/data-privacy/request-data-export
+ * POST /api/data-privacy/delete-account (body: { password })
  */
 
 const express = require('express');
@@ -12,7 +12,7 @@ const { requireAuth } = require('../middleware/auth');
 const router = express.Router();
 const INVOICE_HEADERS_TABLE = 'emmasenvy.invoices';
 
-// POST /api/me/request-data-export
+// POST /api/data-privacy/request-data-export
 router.post('/request-data-export', requireAuth, async (req, res, next) => {
   try {
     const userId = req.user.id;
@@ -58,12 +58,12 @@ router.post('/request-data-export', requireAuth, async (req, res, next) => {
       export: exportData,
     });
   } catch (err) {
-    console.error('[meDataPrivacy] POST /request-data-export error', err);
+    console.error('[dataPrivacy] POST /request-data-export error', err);
     return next(err);
   }
 });
 
-// POST /api/me/delete-account – body: { password }
+// POST /api/data-privacy/delete-account – body: { password }
 router.post('/delete-account', requireAuth, async (req, res, next) => {
   try {
     const { password } = req.body || {};
@@ -84,7 +84,7 @@ router.post('/delete-account', requireAuth, async (req, res, next) => {
     );
     res.json({ message: 'Account has been deleted. You have been signed out.' });
   } catch (err) {
-    console.error('[meDataPrivacy] POST /delete-account error', err);
+    console.error('[dataPrivacy] POST /delete-account error', err);
     return next(err);
   }
 });

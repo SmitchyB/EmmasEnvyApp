@@ -36,7 +36,6 @@ Frontend for the Emmas Envy nail salon app.
 - `npm start` – Start with cache cleared (recommended)
 - `npm run start:fast` – Start without clearing cache (faster, use after the app is loading correctly)
 - `npm run android` / `npm run ios` – Start and open on emulator/simulator
-- `npm run web` – Start for web browser (opens on your computer, not Expo Go)
 
 ## If you still see the old welcome screen
 

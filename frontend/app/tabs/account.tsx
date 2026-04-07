@@ -211,6 +211,9 @@ export default function AccountScreen() { // Define the AccountScreen component
             <Text style={styles.menuButtonText}>Newsletters/Promos</Text>
           </Pressable>
         )}
+        <Pressable style={styles.menuButton} onPress={() => router.push('/rewards')}>
+          <Text style={styles.menuButtonText}>Rewards</Text>
+        </Pressable>
         <Pressable style={styles.menuButton} onPress={() => router.push('/settings')}>
           <Text style={styles.menuButtonText}>Settings</Text>
         </Pressable>
