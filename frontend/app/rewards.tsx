@@ -1,224 +1,239 @@
-import { useRouter } from 'expo-router';
-import React, { useCallback, useEffect, useState } from 'react';
+import { useRouter } from 'expo-router'; // Import the useRouter hook from expo-router
+import React, { useCallback, useEffect, useState } from 'react'; // Import the React, useCallback, useEffect, and useState modules from the react library
 import {
-  Alert,
-  Modal,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Switch,
-  Text,
-  TextInput,
-  View,
+  Alert, // Import the Alert component from react-native
+  Modal, // Import the Modal component from react-native
+  Pressable, // Import the Pressable component from react-native
+  ScrollView, // Import the ScrollView component from react-native
+  StyleSheet, // Import the StyleSheet component from react-native
+  Switch, // Import the Switch component from react-native
+  Text, // Import the Text component from react-native
+  TextInput, // Import the TextInput component from react-native
+  View, // Import the View component from react-native
 } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { NavbarColors } from '@/constants/theme';
-import { useAuth } from '@/contexts/AuthContext';
-import { fetchPublicServiceTypes } from '@/lib/booking-api';
-import type { ServiceType } from '@/lib/booking-types';
-import { serviceLabel } from '@/lib/newsletters-promos-api';
-import { isStaffRole } from '@/lib/roles';
+import { useSafeAreaInsets } from 'react-native-safe-area-context'; // Import the useSafeAreaInsets hook from react-native-safe-area-context
+import { NavbarColors } from '@/constants/theme'; // Import the NavbarColors module from @/constants/theme
+import { useAuth } from '@/contexts/AuthContext'; // Import the useAuth hook from @/contexts/AuthContext
+import { fetchPublicServiceTypes } from '@/lib/booking-api'; // Import the fetchPublicServiceTypes function from @/lib/booking-api
+import type { ServiceType } from '@/lib/booking-types'; // Import the ServiceType type from @/lib/booking-types
+import { serviceLabel } from '@/lib/newsletters-promos-api'; // Import the serviceLabel function from @/lib/newsletters-promos-api
+import { isStaffRole } from '@/lib/roles'; // Import the isStaffRole function from @/lib/roles
 import {
-  createRewardOfferingApi,
-  deleteRewardOfferingApi,
-  getMeRewards,
-  listAvailableRewardOfferings,
-  listRewardOfferingsAdmin,
-  patchRewardOfferingApi,
-  type MeRewardsResponse,
-  type RewardOfferingDto,
-  type RewardTypeApi,
+  createRewardOfferingApi, // Import the createRewardOfferingApi function from @/lib/rewards-api
+  deleteRewardOfferingApi, // Import the deleteRewardOfferingApi function from @/lib/rewards-api
+  getMeRewards, // Import the getMeRewards function from @/lib/rewards-api
+  listAvailableRewardOfferings, // Import the listAvailableRewardOfferings function from @/lib/rewards-api
+  listRewardOfferingsAdmin, // Import the listRewardOfferingsAdmin function from @/lib/rewards-api
+  patchRewardOfferingApi, // Import the patchRewardOfferingApi function from @/lib/rewards-api
+  type MeRewardsResponse, // Import the MeRewardsResponse type from @/lib/rewards-api
+  type RewardOfferingDto, // Import the RewardOfferingDto type from @/lib/rewards-api
+  type RewardTypeApi, // Import the RewardTypeApi type from @/lib/rewards-api
 } from '@/lib/rewards-api';
 
+/* This file is the frontend screen for the rewards. It is used to create, update, and delete rewards. */ 
+
+// Format the offering value
 function formatOfferingValue(o: RewardOfferingDto): string {
-  if (o.reward_type === 'percent_off' && o.value != null) return `${o.value}% off`;
-  if (o.reward_type === 'dollar_off' && o.value != null) return `$${o.value} off`;
-  if (o.reward_type === 'free_service') return 'Free service';
-  return '—';
+  if (o.reward_type === 'percent_off' && o.value != null) return `${o.value}% off`; // If the reward type is percent off and the value is not null, return the value as a percentage off
+  if (o.reward_type === 'dollar_off' && o.value != null) return `$${o.value} off`; // If the reward type is dollar off and the value is not null, return the value as a dollar off
+  if (o.reward_type === 'free_service') return 'Free service'; // If the reward type is free service, return 'Free service'
+  return '—'; // Return '—'
 }
-
+ 
+// Return the reward type short
 function rewardTypeShort(rt: RewardTypeApi): string {
-  if (rt === 'percent_off') return 'Percent off';
-  if (rt === 'dollar_off') return 'Dollar off';
-  return 'Free service';
+  if (rt === 'percent_off') return 'Percent off'; // If the reward type is percent off, return 'Percent off'
+  if (rt === 'dollar_off') return 'Dollar off'; // If the reward type is dollar off, return 'Dollar off'
+  return 'Free service'; // If the reward type is free service, return 'Free service'
 }
 
+// Return the rewards screen
 export default function RewardsScreen() {
-  const insets = useSafeAreaInsets();
-  const router = useRouter();
-  const { user, token } = useAuth();
-  const staff = user ? isStaffRole(user.role) : false;
+  //All the state variables
+  const insets = useSafeAreaInsets(); // Get the insets from the useSafeAreaInsets hook
+  const router = useRouter(); // Get the router from the useRouter hook
+  const { user, token } = useAuth(); // Get the user and token from the useAuth hook
+  const staff = user ? isStaffRole(user.role) : false; // Get the staff from the user role
+  const [offerings, setOfferings] = useState<RewardOfferingDto[]>([]); // Get the offerings from the useState hook
+  const [catalog, setCatalog] = useState<RewardOfferingDto[]>([]); // Get the catalog from the useState hook
+  const [meRewards, setMeRewards] = useState<MeRewardsResponse | null>(null); // Get the me rewards from the useState hook
+  const [serviceTypes, setServiceTypes] = useState<ServiceType[]>([]); // Get the service types from the useState hook
+  const [loading, setLoading] = useState(true); // Get the loading from the useState hook
+  const [modalOpen, setModalOpen] = useState(false); // Get the modal open from the useState hook
+  const [editingId, setEditingId] = useState<number | null>(null); // Get the editing id from the useState hook
+  const [roTitle, setRoTitle] = useState(''); // Get the ro title from the useState hook
+  const [roType, setRoType] = useState<RewardTypeApi>('dollar_off'); // Get the ro type from the useState hook
+  const [roPointCost, setRoPointCost] = useState(''); // Get the ro point cost from the useState hook
+  const [roValue, setRoValue] = useState(''); // Get the ro value from the useState hook
+  const [roMinPurchase, setRoMinPurchase] = useState(''); // Get the ro min purchase from the useState hook
+  const [roActive, setRoActive] = useState(true); // Get the ro active from the useState hook
+  const [roServiceId, setRoServiceId] = useState<number | null>(null); // Get the ro service id from the useState hook
 
-  const [offerings, setOfferings] = useState<RewardOfferingDto[]>([]);
-  const [catalog, setCatalog] = useState<RewardOfferingDto[]>([]);
-  const [meRewards, setMeRewards] = useState<MeRewardsResponse | null>(null);
-  const [serviceTypes, setServiceTypes] = useState<ServiceType[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  const [modalOpen, setModalOpen] = useState(false);
-  const [editingId, setEditingId] = useState<number | null>(null);
-  const [roTitle, setRoTitle] = useState('');
-  const [roType, setRoType] = useState<RewardTypeApi>('dollar_off');
-  const [roPointCost, setRoPointCost] = useState('');
-  const [roValue, setRoValue] = useState('');
-  const [roMinPurchase, setRoMinPurchase] = useState('');
-  const [roActive, setRoActive] = useState(true);
-  const [roServiceId, setRoServiceId] = useState<number | null>(null);
-
+  // Load the staff
   const loadStaff = useCallback(async () => {
-    if (!token) return;
-    setLoading(true);
+    if (!token) return; // If the token is not found, return
+    setLoading(true); // Set the loading to true
+    // Try to load the staff
     try {
-      const [list, st] = await Promise.all([listRewardOfferingsAdmin(token), fetchPublicServiceTypes()]);
-      setOfferings(list);
-      setServiceTypes(st);
+      const [list, st] = await Promise.all([listRewardOfferingsAdmin(token), fetchPublicServiceTypes()]); // Load the reward offerings and service types
+      setOfferings(list); // Set the offerings
+      setServiceTypes(st); // Set the service types
     } catch {
-      setOfferings([]);
+      setOfferings([]); // Set the offerings to an empty array
     } finally {
-      setLoading(false);
+      setLoading(false); // Set the loading to false
     }
-  }, [token]);
-
+  }, [token]); // Load the staff
+  // Load the customer
   const loadCustomer = useCallback(async () => {
-    if (!token) return;
-    setLoading(true);
+    if (!token) return; // If the token is not found, return
+    setLoading(true); // Set the loading to true
+    // Try to load the customer
     try {
+      // Load the me rewards, all offers, and service types
       const [mr, allOffers, st] = await Promise.all([
-        getMeRewards(token),
-        listAvailableRewardOfferings(),
-        fetchPublicServiceTypes(),
+        getMeRewards(token), // Load the me rewards
+        listAvailableRewardOfferings(), // Load the available reward offerings
+        fetchPublicServiceTypes(), // Load the service types
       ]);
-      setMeRewards(mr);
-      setCatalog(allOffers);
-      setServiceTypes(st);
+      setMeRewards(mr); // Set the me rewards
+      setCatalog(allOffers); // Set the catalog
+      setServiceTypes(st); // Set the service types
     } catch {
-      setMeRewards(null);
-      setCatalog([]);
+      setMeRewards(null); // Set the me rewards to null
+      setCatalog([]); // Set the catalog to an empty array
     } finally {
-      setLoading(false);
+      setLoading(false); // Set the loading to false
     }
-  }, [token]);
+  }, [token]); // Load the customer
 
   useEffect(() => {
-    if (!user || !token) return;
-    if (staff) loadStaff();
-    else loadCustomer();
-  }, [user, token, staff, loadStaff, loadCustomer]);
+    if (!user || !token) return; // If the user or token is not found, return
+    if (staff) loadStaff(); // If the staff is true, load the staff
+    else loadCustomer(); // If the staff is false, load the customer
+  }, [user, token, staff, loadStaff, loadCustomer]); // Load the staff and customer
 
+  // Open the new offering
   const openNew = () => {
-    setEditingId(null);
-    setRoTitle('');
-    setRoType('dollar_off');
-    setRoPointCost('');
-    setRoValue('');
-    setRoMinPurchase('0');
-    setRoActive(true);
-    setRoServiceId(null);
-    setModalOpen(true);
+    setEditingId(null); // Set the editing id to null
+    setRoTitle(''); // Set the ro title to an empty string
+    setRoType('dollar_off'); // Set the ro type to dollar off
+    setRoPointCost(''); // Set the ro point cost to an empty string
+    setRoValue(''); // Set the ro value to an empty string
+    setRoMinPurchase('0'); // Set the ro min purchase to 0
+    setRoActive(true); // Set the ro active to true
+    setRoServiceId(null); // Set the ro service id to null
+    setModalOpen(true); // Set the modal open to true
   };
 
+  // Open the edit offering
   const openEdit = (o: RewardOfferingDto) => {
-    setEditingId(o.id);
-    setRoTitle(o.title);
-    setRoType(o.reward_type);
-    setRoPointCost(String(o.point_cost));
-    setRoValue(o.value != null ? String(o.value) : '');
-    setRoMinPurchase(o.min_purchase_amount != null ? String(o.min_purchase_amount) : '0');
-    setRoActive(o.is_active);
-    setRoServiceId(o.service_type_id);
-    setModalOpen(true);
+    setEditingId(o.id); // Set the editing id to the offering id
+    setRoTitle(o.title); // Set the ro title to the offering title
+    setRoType(o.reward_type); // Set the ro type to the offering type
+    setRoPointCost(String(o.point_cost)); // Set the ro point cost to the offering point cost
+    setRoValue(o.value != null ? String(o.value) : ''); // Set the ro value to the offering value
+    setRoMinPurchase(o.min_purchase_amount != null ? String(o.min_purchase_amount) : '0'); // Set the ro min purchase to the offering min purchase
+    setRoActive(o.is_active); // Set the ro active to the offering active
+    setRoServiceId(o.service_type_id); // Set the ro service id to the offering service id
+    setModalOpen(true); // Set the modal open to true
   };
 
+  // Save the offering
   const saveOffering = async () => {
-    if (!token) return;
-    const titleStr = roTitle.trim();
+    if (!token) return; // If the token is not found, return
+    const titleStr = roTitle.trim(); // Get the title from the ro title
+    // If the title is not found, return an alert
     if (!titleStr) {
-      Alert.alert('Enter a title');
+      Alert.alert('Enter a title'); // If the title is not found, return an alert
       return;
     }
-    const cost = parseInt(roPointCost, 10);
+    const cost = parseInt(roPointCost, 10); // Get the cost from the ro point cost
+    // If the cost is not a number or is less than 0, return an alert
     if (Number.isNaN(cost) || cost <= 0) {
-      Alert.alert('Point cost must be a positive number');
+      Alert.alert('Point cost must be a positive number'); // If the cost is not a number or is less than 0, return an alert
       return;
     }
+    // If the reward type is free service and the service id is null, return an alert
     if (roType === 'free_service' && roServiceId == null) {
-      Alert.alert('Free service rewards must be tied to a specific service.');
+      Alert.alert('Free service rewards must be tied to a specific service.'); // If the reward type is free service and the service id is null, return an alert
       return;
     }
-    let valueNum: number | null | undefined;
+    let valueNum: number | null | undefined; // Let the value number be null or undefined
+    // If the reward type is percent off or dollar off, get the value from the ro value
     if (roType === 'percent_off' || roType === 'dollar_off') {
-      const v = parseFloat(roValue);
+      const v = parseFloat(roValue); // Get the value from the ro value
+      // If the value is not a number or is less than 0, return an alert
       if (Number.isNaN(v) || v <= 0) {
-        Alert.alert('Enter a positive value for this reward type.');
+        Alert.alert('Enter a positive value for this reward type.'); // If the value is not a number or is less than 0, return an alert
         return;
       }
+      // If the reward type is percent off and the value is greater than 100, return an alert
       if (roType === 'percent_off' && v > 100) {
-        Alert.alert('Percent cannot exceed 100.');
+        Alert.alert('Percent cannot exceed 100.'); // If the reward type is percent off and the value is greater than 100, return an alert
         return;
       }
-      valueNum = v;
-    } else {
-      valueNum = roValue.trim() === '' ? null : parseFloat(roValue);
+      valueNum = v; // Set the value number to the value
+    } 
+    // If the reward type is free service, get the value from the ro value
+    else {
+      valueNum = roValue.trim() === '' ? null : parseFloat(roValue); // Get the value from the ro value
+      // If the value is not a number or is less than 0, return an alert
       if (roValue.trim() !== '' && (valueNum == null || Number.isNaN(valueNum) || valueNum < 0)) {
-        Alert.alert('Optional value must be non-negative.');
+        Alert.alert('Optional value must be non-negative.'); // If the value is not a number or is less than 0, return an alert
         return;
       }
     }
-    const minPurchase =
-      roMinPurchase.trim() === '' ? null : parseFloat(roMinPurchase);
+    const minPurchase = roMinPurchase.trim() === '' ? null : parseFloat(roMinPurchase); // Get the minimum purchase from the ro min purchase
+    // If the minimum purchase is not a number or is less than 0, return an alert
     if (minPurchase != null && (Number.isNaN(minPurchase) || minPurchase < 0)) {
-      Alert.alert('Min purchase must be 0 or greater');
+      Alert.alert('Min purchase must be 0 or greater'); // If the minimum purchase is not a number or is less than 0, return an alert
       return;
     }
+    // Try to save the offering
     try {
+      // If the editing id is null, create a new offering
       if (editingId == null) {
+        // Create a new offering
         await createRewardOfferingApi(token, {
-          title: titleStr,
-          reward_type: roType,
-          point_cost: cost,
-          value: valueNum ?? null,
-          min_purchase_amount: minPurchase,
-          is_active: roActive,
-          service_type_id: roServiceId,
+          title: titleStr, // Set the title to the title string
+          reward_type: roType, // Set the reward type to the reward type
+          point_cost: cost, // Set the point cost to the cost
+          value: valueNum ?? null, // Set the value to the value number
+          min_purchase_amount: minPurchase, // Set the minimum purchase to the minimum purchase
+          is_active: roActive, // Set the active to the active
+          service_type_id: roServiceId, // Set the service id to the service id
         });
-      } else {
+      } 
+      // else update the offering
+      else {
+        //await to patch the offering
         await patchRewardOfferingApi(token, editingId, {
-          title: titleStr,
-          reward_type: roType,
-          point_cost: cost,
-          value: valueNum ?? null,
-          min_purchase_amount: minPurchase,
-          is_active: roActive,
-          service_type_id: roServiceId,
+          title: titleStr, // Set the title to the title string
+          reward_type: roType, // Set the reward type to the reward type
+          point_cost: cost, // Set the point cost to the cost
+          value: valueNum ?? null, // Set the value to the value number
+          min_purchase_amount: minPurchase, // Set the minimum purchase to the minimum purchase
+          is_active: roActive, // Set the active to the active
+          service_type_id: roServiceId, // Set the service id to the service id
         });
       }
-      setModalOpen(false);
-      await loadStaff();
     } catch (e) {
-      Alert.alert('Save failed', e instanceof Error ? e.message : 'Try again.');
+      Alert.alert('Save failed', e instanceof Error ? e.message : 'Try again.'); // If there is an error, return an alert
     }
   };
-
+  // Remove the offering
   const removeOffering = (id: number) => {
-    if (!token) return;
+    if (!token) return; // If the token is not found, return
+    // Show an alert that the delete offering
     Alert.alert('Delete offering', 'Remove this reward offering?', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Delete',
-        style: 'destructive',
-        onPress: async () => {
-          try {
-            await deleteRewardOfferingApi(token, id);
-            await loadStaff();
-          } catch (e) {
-            Alert.alert('Delete failed', e instanceof Error ? e.message : 'Try again.');
-          }
-        },
-      },
+      { text: 'Cancel', style: 'cancel' }, // Show an alert that the cancel is clicked
+      { text: 'Delete', style: 'destructive', onPress: async () => { try { await deleteRewardOfferingApi(token, id); await loadStaff(); } catch (e) { Alert.alert('Delete failed', e instanceof Error ? e.message : 'Try again.'); } }, }, // Show an alert that the delete is clicked
     ]);
   };
-
+  // If the user is not found, return
   if (!user) {
+    // Return the prompt to sign in
     return (
       <View style={[styles.centered, { paddingTop: insets.top + 40, paddingHorizontal: 24 }]}>
         <Text style={styles.muted}>Sign in to view rewards.</Text>
@@ -229,8 +244,8 @@ export default function RewardsScreen() {
     );
   }
 
-  const customerPoints = meRewards?.points ?? user.reward_points ?? 0;
-
+  const customerPoints = meRewards?.points ?? user.reward_points ?? 0; // Get the customer points from the me rewards
+  // Return the rewards screen
   return (
     <View style={[styles.screen, { paddingTop: insets.top + 12, paddingBottom: insets.bottom + 12 }]}>
       <View style={styles.headerRow}>
