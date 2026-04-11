@@ -1,290 +1,290 @@
-import { useRouter } from 'expo-router';
+import { useRouter } from 'expo-router'; // Import the useRouter hook from expo-router
 import React, { useCallback, useEffect, useState } from 'react';
 import {
-  Alert,
-  Modal,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Switch,
-  Text,
-  TextInput,
-  View,
+  Alert, // Import the Alert component from react-native
+  Modal, // Import the Modal component from react-native
+  Pressable, // Import the Pressable component from react-native  
+  ScrollView, // Import the ScrollView component from react-native
+  StyleSheet, // Import the StyleSheet component from react-native
+  Switch, // Import the Switch component from react-native
+  Text, // Import the Text component from react-native
+  TextInput, // Import the TextInput component from react-native
+  View, // Import the View component from react-native
 } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { NavbarColors } from '@/constants/theme';
-import { useAuth } from '@/contexts/AuthContext';
-import { fetchPublicServiceTypes } from '@/lib/booking-api';
-import type { ServiceType } from '@/lib/booking-types';
+import { useSafeAreaInsets } from 'react-native-safe-area-context'; // Import the useSafeAreaInsets hook from react-native-safe-area-context
+import { NavbarColors } from '@/constants/theme'; // Import the NavbarColors module from @/constants/theme
+import { useAuth } from '@/contexts/AuthContext'; // Import the useAuth hook from @/contexts/AuthContext
+import { fetchPublicServiceTypes } from '@/lib/booking-api'; // Import the fetchPublicServiceTypes function from @/lib/booking-api
+import type { ServiceType } from '@/lib/booking-types'; // Import the ServiceType type from @/lib/booking-types
 import {
-  createNewsletterApi,
-  createPromoCodeApi,
-  deleteNewsletterApi,
-  deletePromoCodeApi,
-  listNewslettersApi,
-  listPromoCodes,
-  patchNewsletterApi,
-  patchPromoCodeApi,
-  sendNewsletterApi,
-  serviceLabel,
-  type NewsletterDto,
-  type PromoCodeDto,
+  createNewsletterApi, // Import the createNewsletterApi function from @/lib/newsletters-promos-api
+  createPromoCodeApi, // Import the createPromoCodeApi function from @/lib/newsletters-promos-api
+  deleteNewsletterApi, // Import the deleteNewsletterApi function from @/lib/newsletters-promos-api
+  deletePromoCodeApi, // Import the deletePromoCodeApi function from @/lib/newsletters-promos-api
+  listNewslettersApi, // Import the listNewslettersApi function from @/lib/newsletters-promos-api
+  listPromoCodes, // Import the listPromoCodes function from @/lib/newsletters-promos-api
+  patchNewsletterApi, // Import the patchNewsletterApi function from @/lib/newsletters-promos-api
+  patchPromoCodeApi, // Import the patchPromoCodeApi function from @/lib/newsletters-promos-api
+  sendNewsletterApi, // Import the sendNewsletterApi function from @/lib/newsletters-promos-api
+  serviceLabel, // Import the serviceLabel function from @/lib/newsletters-promos-api
+  type NewsletterDto, // Import the NewsletterDto type from @/lib/newsletters-promos-api
+  type PromoCodeDto, // Import the PromoCodeDto type from @/lib/newsletters-promos-api
 } from '@/lib/newsletters-promos-api';
-import { isStaffRole } from '@/lib/roles';
+import { isStaffRole } from '@/lib/roles'; // Import the isStaffRole function from @/lib/roles
 
+/* This file is the frontend screen for the newsletters and promos. It is used to create, update, and delete newsletters and promos. */ 
+
+// Export the NewslettersPromosScreen component
 export default function NewslettersPromosScreen() {
-  const insets = useSafeAreaInsets();
-  const router = useRouter();
-  const { user, token } = useAuth();
-  const [promos, setPromos] = useState<PromoCodeDto[]>([]);
-  const [newsletters, setNewsletters] = useState<NewsletterDto[]>([]);
-  const [serviceTypes, setServiceTypes] = useState<ServiceType[]>([]);
-  const [loading, setLoading] = useState(true);
+  //All the state variables
+  const insets = useSafeAreaInsets(); // Import the useSafeAreaInsets hook from react-native-safe-area-context
+  const router = useRouter(); // Import the useRouter hook from expo-router
+  const { user, token } = useAuth(); // Import the useAuth hook from @/contexts/AuthContext
+  const [promos, setPromos] = useState<PromoCodeDto[]>([]); // Import the PromoCodeDto type from @/lib/newsletters-promos-api
+  const [newsletters, setNewsletters] = useState<NewsletterDto[]>([]); // Import the NewsletterDto type from @/lib/newsletters-promos-api
+  const [serviceTypes, setServiceTypes] = useState<ServiceType[]>([]); // Import the ServiceType type from @/lib/booking-types
+  const [loading, setLoading] = useState(true); // Import the useState hook from react
+  const [promoModalOpen, setPromoModalOpen] = useState(false); // Import the useState hook from react
+  const [promoEditingId, setPromoEditingId] = useState<number | null>(null); // Import the useState hook from react
+  const [pcCode, setPcCode] = useState(''); // Import the useState hook from react
+  const [pcDiscMode, setPcDiscMode] = useState<'percent' | 'dollar'>('percent'); // Import the useState hook from react
+  const [pcDiscVal, setPcDiscVal] = useState(''); // Import the useState hook from react
+  const [pcMin, setPcMin] = useState('0'); // Import the useState hook from react
+  const [pcExp, setPcExp] = useState(''); // Import the useState hook from react
+  const [pcUsageLimit, setPcUsageLimit] = useState(''); // Import the useState hook from react
+  const [pcActive, setPcActive] = useState(true); // Import the useState hook from react
+  const [pcServiceId, setPcServiceId] = useState<number | null>(null); // Import the useState hook from react
+  const [nlModalOpen, setNlModalOpen] = useState(false); // Import the useState hook from react
+  const [nlEditingId, setNlEditingId] = useState<number | null>(null); // Import the useState hook from react
+  const [nlSubject, setNlSubject] = useState(''); // Import the useState hook from react
+  const [nlContent, setNlContent] = useState(''); // Import the useState hook from react
+  const [nlPromoId, setNlPromoId] = useState<number | null>(null); // Import the useState hook from react
 
-  const [promoModalOpen, setPromoModalOpen] = useState(false);
-  const [promoEditingId, setPromoEditingId] = useState<number | null>(null);
-  const [pcCode, setPcCode] = useState('');
-  const [pcDiscMode, setPcDiscMode] = useState<'percent' | 'dollar'>('percent');
-  const [pcDiscVal, setPcDiscVal] = useState('');
-  const [pcMin, setPcMin] = useState('0');
-  const [pcExp, setPcExp] = useState('');
-  const [pcUsageLimit, setPcUsageLimit] = useState('');
-  const [pcActive, setPcActive] = useState(true);
-  const [pcServiceId, setPcServiceId] = useState<number | null>(null);
-
-  const [nlModalOpen, setNlModalOpen] = useState(false);
-  const [nlEditingId, setNlEditingId] = useState<number | null>(null);
-  const [nlSubject, setNlSubject] = useState('');
-  const [nlContent, setNlContent] = useState('');
-  const [nlPromoId, setNlPromoId] = useState<number | null>(null);
-
+  // Load the promo codes and newsletters
   const load = useCallback(async () => {
-    if (!token) return;
-    setLoading(true);
+    if (!token) return; // If the token is not found, return
+    setLoading(true); // Set the loading state to true
+    // Try to load the promo codes and newsletters
     try {
+      // Load the promo codes, newsletters, and service types
       const [pl, nl, st] = await Promise.all([
-        listPromoCodes(token),
-        listNewslettersApi(token),
-        fetchPublicServiceTypes(),
+        listPromoCodes(token), // Load the promo codes
+        listNewslettersApi(token), // Load the newsletters
+        fetchPublicServiceTypes(), // Load the service types
       ]);
-      setPromos(pl);
-      setNewsletters(nl);
-      setServiceTypes(st);
+      setPromos(pl); // Set the promo codes
+      setNewsletters(nl); // Set the newsletters
+      setServiceTypes(st); // Set the service types
     } catch {
-      setPromos([]);
-      setNewsletters([]);
+      setPromos([]); // Set the promo codes to an empty array
+      setNewsletters([]); // Set the newsletters to an empty array
     } finally {
-      setLoading(false);
+      setLoading(false); // Set the loading state to false
     }
-  }, [token]);
+  }, [token]); // Load the promo codes and newsletters
 
+  // Load the promo codes and newsletters
   useEffect(() => {
-    load();
+    load(); // Load the promo codes and newsletters
   }, [load]);
 
+  // Open the new promo modal
   const openNewPromo = () => {
-    setPromoEditingId(null);
-    setPcCode('');
-    setPcDiscMode('percent');
-    setPcDiscVal('');
-    setPcMin('0');
-    setPcExp('');
-    setPcUsageLimit('');
-    setPcActive(true);
-    setPcServiceId(null);
-    setPromoModalOpen(true);
+    setPromoEditingId(null); // Set the promo editing id to null
+    setPcCode(''); // Set the promo code to an empty string
+    setPcDiscMode('percent'); // Set the promo discount mode to percent
+    setPcDiscVal(''); // Set the promo discount value to an empty string
+    setPcMin('0'); // Set the promo minimum to 0
+    setPcExp(''); // Set the promo expiration date to an empty string
+    setPcUsageLimit(''); // Set the promo usage limit to an empty string
+    setPcActive(true); // Set the promo active to true
+    setPcServiceId(null); // Set the promo service id to null
+    setPromoModalOpen(true); // Set the promo modal open to true
   };
 
+  // Open the edit promo modal
   const openEditPromo = (p: PromoCodeDto) => {
-    setPromoEditingId(p.id);
-    setPcCode(p.code);
-    setPcDiscMode(p.discount_type === 'flat_amount' ? 'dollar' : 'percent');
-    setPcDiscVal(String(p.discount_value));
-    setPcMin(String(p.min_purchase_amount ?? 0));
-    setPcExp(p.expiration_date ? String(p.expiration_date).slice(0, 10) : '');
-    setPcUsageLimit(p.usage_limit != null ? String(p.usage_limit) : '');
-    setPcActive(p.is_active);
-    setPcServiceId(p.service_type_id);
-    setPromoModalOpen(true);
+    setPromoEditingId(p.id); // Set the promo editing id to the promo id
+    setPcCode(p.code); // Set the promo code to the promo code
+    setPcDiscMode(p.discount_type === 'flat_amount' ? 'dollar' : 'percent'); // Set the promo discount mode to the promo discount mode
+    setPcDiscVal(String(p.discount_value)); // Set the promo discount value to the promo discount value
+    setPcMin(String(p.min_purchase_amount ?? 0)); // Set the promo minimum to the promo minimum
+    setPcExp(p.expiration_date ? String(p.expiration_date).slice(0, 10) : ''); // Set the promo expiration date to the promo expiration date
+    setPcUsageLimit(p.usage_limit != null ? String(p.usage_limit) : ''); // Set the promo usage limit to the promo usage limit
+    setPcActive(p.is_active); // Set the promo active to the promo active
+    setPcServiceId(p.service_type_id); // Set the promo service id to the promo service id
+    setPromoModalOpen(true); // Set the promo modal open to true
   };
 
+  // Save the promo
   const savePromo = async () => {
-    if (!token) return;
-    const val = parseFloat(pcDiscVal);
+    if (!token) return; // If the token is not found, return
+    const val = parseFloat(pcDiscVal); // Get the promo discount value from the promo discount value
+    // If the promo discount value is not a number or is less than 0, return a 400 error
     if (Number.isNaN(val) || val <= 0) {
-      Alert.alert('Enter a positive discount value');
+      Alert.alert('Enter a positive discount value'); // If the promo discount value is not a number or is less than 0, return a 400 error
       return;
     }
-    const minPurchase = parseFloat(pcMin);
+    const minPurchase = parseFloat(pcMin); // Get the promo minimum from the promo minimum
+    // If the promo minimum is not a number or is less than 0, return a 400 error
     if (Number.isNaN(minPurchase) || minPurchase < 0) {
-      Alert.alert('Min purchase must be 0 or greater');
+      Alert.alert('Min purchase must be 0 or greater'); // If the promo minimum is not a number or is less than 0, return a 400 error
       return;
     }
-    const usageLimit =
-      pcUsageLimit.trim() === '' ? null : parseInt(pcUsageLimit, 10);
+    const usageLimit = pcUsageLimit.trim() === '' ? null : parseInt(pcUsageLimit, 10); // Get the promo usage limit from the promo usage limit
+    // If the promo usage limit is not a number or is less than 0, return a 400 error
     if (pcUsageLimit.trim() !== '' && (Number.isNaN(usageLimit!) || usageLimit! < 0)) {
-      Alert.alert('Usage limit must be empty or a non-negative integer');
+      Alert.alert('Usage limit must be empty or a non-negative integer'); // If the promo usage limit is not a number or is less than 0, return a 400 error
       return;
     }
-    const exp = pcExp.trim() === '' ? null : pcExp.trim();
-    const dt = pcDiscMode === 'percent' ? 'percent' : 'fixed';
+    const exp = pcExp.trim() === '' ? null : pcExp.trim(); // Get the promo expiration date from the promo expiration date
+    const dt = pcDiscMode === 'percent' ? 'percent' : 'fixed'; // Get the promo discount type from the promo discount type
+    // Try to save the promo
     try {
+      // If the promo editing id is null, create a new promo
       if (promoEditingId == null) {
-        const c = pcCode.trim();
+        const c = pcCode.trim(); // Get the promo code from the promo code
+        // If the promo code is not found, return a 400 error
         if (!c) {
-          Alert.alert('Code is required');
-          return;
+          Alert.alert('Code is required'); // Show an alert that the code is required
+          return; // Return
         }
+        // Create a new promo
         await createPromoCodeApi(token, {
-          code: c,
-          discount_type: dt,
-          discount_value: val,
-          min_purchase_amount: minPurchase,
-          expiration_date: exp,
-          usage_limit: usageLimit,
-          is_active: pcActive,
-          service_type_id: pcServiceId,
+          code: c, // Set the promo code to the promo code
+          discount_type: dt, // Set the promo discount type to the promo discount type
+          discount_value: val, // Set the promo discount value to the promo discount value
+          min_purchase_amount: minPurchase, // Set the promo minimum to the promo minimum
+          expiration_date: exp, // Set the promo expiration date to the promo expiration date
+          usage_limit: usageLimit, // Set the promo usage limit to the promo usage limit
+          is_active: pcActive, // Set the promo active to the promo active
+          service_type_id: pcServiceId, // Set the promo service id to the promo service id
         });
-      } else {
+      } 
+      // else update the promo
+      else {
+        //await to patch the promo
         await patchPromoCodeApi(token, promoEditingId, {
-          discount_type: dt,
-          discount_value: val,
-          min_purchase_amount: minPurchase,
-          expiration_date: exp,
-          usage_limit: usageLimit,
-          is_active: pcActive,
-          service_type_id: pcServiceId,
+          discount_type: dt, // Set the promo discount type to the promo discount type
+          discount_value: val, // Set the promo discount value to the promo discount value
+          min_purchase_amount: minPurchase, // Set the promo minimum to the promo minimum
+          expiration_date: exp, // Set the promo expiration date to the promo expiration date
+          usage_limit: usageLimit, // Set the promo usage limit to the promo usage limit
+          is_active: pcActive, // Set the promo active to the promo active
+          service_type_id: pcServiceId, // Set the promo service id to the promo service id
         });
       }
-      setPromoModalOpen(false);
-      await load();
     } catch (e) {
-      Alert.alert('Save failed', e instanceof Error ? e.message : 'Try again.');
+      Alert.alert('Save failed', e instanceof Error ? e.message : 'Try again.'); // Show an alert that the save failed
     }
   };
 
+  // Remove the promo
   const removePromo = (id: number) => {
-    if (!token) return;
+    if (!token) return; // If the token is not found, return
+    // Show an alert that the delete promo
     Alert.alert('Delete promo', 'Remove this promo code?', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Delete',
-        style: 'destructive',
-        onPress: async () => {
-          try {
-            await deletePromoCodeApi(token, id);
-            await load();
-          } catch (e) {
-            Alert.alert('Delete failed', e instanceof Error ? e.message : 'Try again.');
-          }
-        },
-      },
-    ]);
-  };
-
+      { text: 'Cancel', style: 'cancel' }, // Show an alert that the cancel is clicked
+      { text: 'Delete', style: 'destructive', onPress: async () => { try { await deletePromoCodeApi(token, id); await load(); } catch (e) { Alert.alert('Delete failed', e instanceof Error ? e.message : 'Try again.'); } }, }, // Show an alert that the delete is clicked
+      ]);
+    };
+  // Open the new newsletter modal
   const openNewNewsletter = () => {
-    setNlEditingId(null);
-    setNlSubject('');
-    setNlContent('');
-    setNlPromoId(null);
-    setNlModalOpen(true);
+    setNlEditingId(null); // Set the newsletter editing id to null
+    setNlSubject(''); // Set the newsletter subject to an empty string
+    setNlContent(''); // Set the newsletter content to an empty string
+    setNlPromoId(null); // Set the newsletter promo id to null
+    setNlModalOpen(true); // Set the newsletter modal open to true
   };
 
+  // Open the edit newsletter modal
   const openEditNewsletter = (n: NewsletterDto) => {
-    if (n.sent_at) {
-      Alert.alert('Read only', 'Sent newsletters cannot be edited.');
-      return;
+    if (n.sent_at) { // If the newsletter is sent, return
+      Alert.alert('Read only', 'Sent newsletters cannot be edited.'); // Show an alert that the newsletter is sent
+      return; // Return
     }
-    setNlEditingId(n.id);
-    setNlSubject(n.subject);
-    setNlContent(n.content ?? '');
-    setNlPromoId(n.promo_code_id);
-    setNlModalOpen(true);
+    setNlEditingId(n.id); // Set the newsletter editing id to the newsletter id
+    setNlSubject(n.subject); // Set the newsletter subject to the newsletter subject
+    setNlContent(n.content ?? ''); // Set the newsletter content to the newsletter content
+    setNlPromoId(n.promo_code_id); // Set the newsletter promo id to the newsletter promo id
+    setNlModalOpen(true); // Set the newsletter modal open to true
   };
 
+  // Insert the promo into the content
   const insertPromoIntoContent = () => {
-    const pid = nlPromoId;
+    const pid = nlPromoId; // Get the newsletter promo id from the newsletter promo id
+    // If the newsletter promo id is null, return
     if (pid == null) {
-      Alert.alert('Select a promo', 'Choose a promo code in the newsletter form first.');
-      return;
+      Alert.alert('Select a promo', 'Choose a promo code in the newsletter form first.'); // Show an alert that the select a promo is clicked
+      return; // Return
     }
-    const p = promos.find((x) => x.id === pid);
+    const p = promos.find((x) => x.id === pid); // Get the promo from the promo id
+    // If the promo is not found, return
     if (!p) {
-      Alert.alert('Promo not found', 'Reload and try again.');
-      return;
+      Alert.alert('Promo not found', 'Reload and try again.'); // Show an alert that the promo is not found
+      return; // Return
     }
-    const line = `\n\nUse code: ${p.code}\n`;
-    setNlContent((c) => (c.endsWith('\n') || c === '' ? `${c}${line.trimStart()}` : `${c}${line}`));
+    const line = `\n\nUse code: ${p.code}\n`; // Get the line from the promo code
+    setNlContent((c) => (c.endsWith('\n') || c === '' ? `${c}${line.trimStart()}` : `${c}${line}`)); // Set the newsletter content to the newsletter content
   };
 
+  // Save the newsletter
   const saveNewsletter = async () => {
-    if (!token) return;
-    const subj = nlSubject.trim();
+    if (!token) return; // If the token is not found, return
+    const subj = nlSubject.trim(); // Get the newsletter subject from the newsletter subject
+    // If the newsletter subject is not found, return
     if (!subj) {
-      Alert.alert('Subject is required');
-      return;
+      Alert.alert('Subject is required'); // Show an alert that the subject is required
+      return; // Return
     }
+    // Try to save the newsletter
     try {
+      // If the newsletter editing id is null, create a new newsletter
       if (nlEditingId == null) {
+        // Create a new newsletter
         await createNewsletterApi(token, {
-          subject: subj,
-          content: nlContent,
-          promo_code_id: nlPromoId,
+          subject: subj, // Set the newsletter subject to the newsletter subject
+          content: nlContent, // Set the newsletter content to the newsletter content
+          promo_code_id: nlPromoId, // Set the newsletter promo id to the newsletter promo id
         });
-      } else {
+      } 
+      // else update the newsletter
+      else {
+        //await to patch the newsletter
         await patchNewsletterApi(token, nlEditingId, {
-          subject: subj,
-          content: nlContent,
-          promo_code_id: nlPromoId,
+          subject: subj, // Set the newsletter subject to the newsletter subject
+          content: nlContent, // Set the newsletter content to the newsletter content
+          promo_code_id: nlPromoId, // Set the newsletter promo id to the newsletter promo id
         });
       }
-      setNlModalOpen(false);
-      await load();
+      setNlModalOpen(false); // Set the newsletter modal open to false
+      await load(); // Load the promo codes and newsletters
     } catch (e) {
-      Alert.alert('Save failed', e instanceof Error ? e.message : 'Try again.');
+      Alert.alert('Save failed', e instanceof Error ? e.message : 'Try again.'); // Show an alert that the save failed
     }
   };
-
+  // Send the newsletter
   const sendNewsletter = (id: number) => {
-    if (!token) return;
+    if (!token) return; // If the token is not found, return
+    // Show an alert that the send newsletter
     Alert.alert('Send newsletter', 'Mark this newsletter as sent?', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Send',
-        onPress: async () => {
-          try {
-            await sendNewsletterApi(token, id);
-            setNlModalOpen(false);
-            await load();
-          } catch (e) {
-            Alert.alert('Send failed', e instanceof Error ? e.message : 'Try again.');
-          }
-        },
-      },
+      { text: 'Cancel', style: 'cancel' }, // Show an alert that the cancel is clicked
+      { text: 'Send', style: 'destructive', onPress: async () => { try { await sendNewsletterApi(token, id); setNlModalOpen(false); await load(); } catch (e) { Alert.alert('Send failed', e instanceof Error ? e.message : 'Try again.'); } }, }, // Show an alert that the send is clicked
     ]);
   };
 
+  // Remove the newsletter
   const removeNewsletter = (id: number) => {
-    if (!token) return;
+    if (!token) return; // If the token is not found, return
+    // Show an alert that the delete newsletter
     Alert.alert('Delete draft', 'Delete this draft?', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Delete',
-        style: 'destructive',
-        onPress: async () => {
-          try {
-            await deleteNewsletterApi(token, id);
-            setNlModalOpen(false);
-            await load();
-          } catch (e) {
-            Alert.alert('Delete failed', e instanceof Error ? e.message : 'Try again.');
-          }
-        },
-      },
+      { text: 'Cancel', style: 'cancel' }, // Show an alert that the cancel is clicked
+      { text: 'Delete', style: 'destructive', onPress: async () => { try { await deleteNewsletterApi(token, id); setNlModalOpen(false); await load(); } catch (e) { Alert.alert('Delete failed', e instanceof Error ? e.message : 'Try again.'); } }, }, // Show an alert that the delete is clicked
     ]);
   };
-
+  // If the user is not a staff role, return
   if (!user || !isStaffRole(user.role)) {
+    // Return the user does not have access to this screen
     return (
       <View style={[styles.centered, { paddingTop: insets.top + 40 }]}>
         <Text style={styles.muted}>You do not have access to this screen.</Text>
@@ -294,7 +294,7 @@ export default function NewslettersPromosScreen() {
       </View>
     );
   }
-
+  // Return the newsletters and promos screen
   return (
     <View style={[styles.screen, { paddingTop: insets.top + 12, paddingBottom: insets.bottom + 12 }]}>
       <View style={styles.headerRow}>
