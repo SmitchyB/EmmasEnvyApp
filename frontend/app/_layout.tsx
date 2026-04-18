@@ -54,12 +54,14 @@ export default function RootLayout() {
               contentStyle: { backgroundColor: 'transparent' },
               animation: 'fade',
             }}>
+            <Stack.Screen name="index" />
             <Stack.Screen name="tabs" />
             <Stack.Screen name="signup-2fa-choice" />
             <Stack.Screen name="complete-profile" />
             <Stack.Screen name="verify-2fa" />
             <Stack.Screen name="manage-portfolio" />
             <Stack.Screen name="book-appointment" />
+            <Stack.Screen name="pos-checkout" />
             <Stack.Screen name="my-services" />
             <Stack.Screen name="newsletters-promos" />
             <Stack.Screen name="rewards" />

@@ -6,12 +6,16 @@
 import Constants from 'expo-constants';
 
 const extra = (Constants.expoConfig?.extra ?? {}) as Record<string, string | undefined>;
-const envUrl =
-  typeof process === 'undefined'
-    ? undefined
-    : (process as unknown as { env?: Record<string, string> }).env?.EXPO_PUBLIC_API_URL;
+const procEnv = typeof process === 'undefined' ? undefined : (process as unknown as { env?: Record<string, string> }).env;
+
+const envUrl = procEnv?.EXPO_PUBLIC_API_URL;
 
 export const API_BASE = envUrl ?? extra?.EXPO_PUBLIC_API_URL ?? 'http://localhost:3002';
+
+/** Square Web Payments (POS card modal). Must match the app/location in Square Dashboard. */
+export const SQUARE_APPLICATION_ID =
+  procEnv?.EXPO_PUBLIC_SQUARE_APPLICATION_ID ?? extra?.EXPO_PUBLIC_SQUARE_APPLICATION_ID ?? '';
+export const SQUARE_LOCATION_ID = procEnv?.EXPO_PUBLIC_SQUARE_LOCATION_ID ?? extra?.EXPO_PUBLIC_SQUARE_LOCATION_ID ?? '';
 
 export function uploadsUrl(path: string | null | undefined): string | null {
   if (!path || typeof path !== 'string') return null;

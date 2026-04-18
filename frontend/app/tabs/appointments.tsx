@@ -565,11 +565,17 @@ export default function AppointmentsTabScreen() {
                 {isStaff &&
                 !isCanceled(detail) &&
                 isServiceComplete(detail) &&
-                !isPaidAppointment(detail) ? (
+                !isPaidAppointment(detail) &&
+                token ? (
                   <Pressable
                     style={styles.action}
                     onPress={() => {
-                      Alert.alert('Feature coming soon', 'Recording payment from the app will be available in a future update.');
+                      const id = detail.id;
+                      setDetail(null);
+                      router.push({
+                        pathname: '/pos-checkout',
+                        params: { appointmentId: String(id) },
+                      });
                     }}>
                     <Text style={styles.actionText}>Pay</Text>
                   </Pressable>
@@ -775,6 +781,7 @@ export default function AppointmentsTabScreen() {
           />
         </>
       ) : null}
+
     </View>
   );
 }

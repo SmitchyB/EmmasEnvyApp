@@ -9,9 +9,23 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.emmasenvy.app",
+      "infoPlist": {
+        "NSBluetoothAlwaysUsageDescription": "Bluetooth is used to pair your Square card reader for in-person payments.",
+        "NSBluetoothPeripheralUsageDescription": "Bluetooth is used to pair your Square card reader.",
+        "NSLocationWhenInUseUsageDescription": "Location may be required on some devices to discover nearby Bluetooth card readers."
+      }
     },
     "android": {
+      "package": "com.emmasenvy.app",
+      "permissions": [
+        "BLUETOOTH",
+        "BLUETOOTH_ADMIN",
+        "BLUETOOTH_CONNECT",
+        "BLUETOOTH_SCAN",
+        "ACCESS_FINE_LOCATION"
+      ],
       "adaptiveIcon": {
         "backgroundColor": "#0d0d0d",
         "foregroundImage": "./assets/images/emmasenvy.png"
@@ -20,6 +34,7 @@
       "predictiveBackGestureEnabled": false
     },
     "plugins": [
+      "expo-dev-client",
       "expo-router",
       [
         "expo-splash-screen",

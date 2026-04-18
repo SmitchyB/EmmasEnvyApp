@@ -1,6 +1,6 @@
 const express = require('express'); // Import the express module
 const db = require('../lib/db'); // Import the db module
-const { requireAuth, requireAdminOrIT } = require('../middleware/auth'); // Import the requireAuth and requireAdminOrIT middleware
+const { requireAuth, requireAdminOrIT } = require('../middleware/auth');
 const {
   normalizePromoCode, // Import the normalizePromoCode function
   selectPromoByCode, // Import the selectPromoByCode function
@@ -79,10 +79,18 @@ router.get('/validate', requireAuth, async (req, res, next) => {
     if (req.query.service_type_id != null && req.query.service_type_id !== '' && Number.isNaN(serviceTypeId)) { // If the service type id is not a number, return a 400 error
       return res.status(400).json({ error: 'Invalid service_type_id' }); // If the service type id is not a number, return a 400 error
     }
-    // Select the promo code from the database
-    const row = await selectPromoByCode(db.pool, normalizedCode); // Select the promo code from the database
-    const userId = req.user?.id; // Get the user id from the request
-    const usedPromoIds = userId != null ? await getUserUsedPromoCodes(db.pool, userId) : []; // Get the used promo ids from the database
+    const row = await selectPromoByCode(db.pool, normalizedCode);
+    let customerIdForPromo = req.user?.id ?? null;
+    const rawCustomerId = req.query.customer_id != null && String(req.query.customer_id).trim() !== '' ? parseInt(req.query.customer_id, 10) : null;
+    if (rawCustomerId != null && !Number.isNaN(rawCustomerId)) {
+      const role = req.user && req.user.role ? String(req.user.role).toLowerCase() : '';
+      if (role !== 'admin' && role !== 'it') {
+        return res.status(403).json({ error: 'Admin or IT access required to validate a promo for another customer' });
+      }
+      customerIdForPromo = rawCustomerId;
+    }
+    const usedPromoIds =
+      customerIdForPromo != null ? await getUserUsedPromoCodes(db.pool, customerIdForPromo) : [];
     // Check if the promo code is eligible
     const errMsg = promoEligibilityError(row, {
       subtotal, // Get the subtotal from the request query
