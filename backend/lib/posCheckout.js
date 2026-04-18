@@ -1,4 +1,4 @@
-// This file is used to compute the checkout breakdown for the POS system
+// This file is used to compute the checkout breakdown for the POS system essentially just pricing math helper functions
 const crypto = require('crypto'); //crypto is used to create a hash of the idempotency key
 const { POINTS_PER_DOLLAR } = require('./constants'); //POINTS_PER_DOLLAR is the number of points per dollar
 
