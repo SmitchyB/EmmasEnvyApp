@@ -20,6 +20,9 @@ const invoicesRoutes = require('./routes/invoices'); // Import the invoices rout
 const notificationPreferencesRoutes = require('./routes/notificationPreferences'); // Import the notification preferences routes
 const dataPrivacyRoutes = require('./routes/dataPrivacy'); // Import the data privacy routes
 const siteSettingsRoutes = require('./routes/siteSettings'); // Import the site settings routes
+const supportTicketsRoutes = require('./routes/supportTickets'); // Import the support tickets routes
+const db = require('./lib/db'); // Pool for background jobs
+const { sweepExpiredPendingCustomer } = require('./lib/supportTicketLifecycle');
 const UPLOADS_DIR = path.join(__dirname, 'uploads'); // Define the uploads directory
 const PROFILE_PHOTOS_DIR = path.join(UPLOADS_DIR, 'profile_photos');
 const PORTFOLIO_PHOTOS_DIR = path.join(UPLOADS_DIR, 'portfolio'); // Define the portfolio photos directory
@@ -51,6 +54,7 @@ app.use('/api/invoices', invoicesRoutes); // Mount the invoices routes
 app.use('/api/notification-preferences', notificationPreferencesRoutes); // Mount the notification preferences routes
 app.use('/api/data-privacy', dataPrivacyRoutes); // Mount the data privacy routes
 app.use('/api/site-settings', siteSettingsRoutes); // Mount the site settings routes
+app.use('/api/support-tickets', supportTicketsRoutes); // Mount the support tickets routes
 app.use('/uploads', express.static(UPLOADS_DIR)); // Mount the uploads directory
 
 app.use((req, res, next) => {
@@ -66,4 +70,11 @@ app.use((err, req, res, next) => {
 });
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`Server listening on 0.0.0.0:${PORT}`);
+  const sixHoursMs = 6 * 60 * 60 * 1000;
+  setTimeout(() => {
+    sweepExpiredPendingCustomer(db.pool).catch((e) => console.error('support ticket auto-close sweep', e));
+  }, 60_000);
+  setInterval(() => {
+    sweepExpiredPendingCustomer(db.pool).catch((e) => console.error('support ticket auto-close sweep', e));
+  }, sixHoursMs);
 });

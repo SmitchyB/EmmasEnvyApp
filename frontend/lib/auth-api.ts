@@ -281,6 +281,81 @@ export async function revokeSession(token: string, sessionId: number): Promise<v
   }
 }
 
+// Request password reset
+export async function requestPasswordReset(params: {
+  email?: string; // Email on the account
+  phone?: string; // Phone on the account
+}): Promise<{ message: string }> {
+  //Fetch the request password reset endpoint
+  const res = await fetch(apiUrl('/api/auth/forgot-password'), {
+    method: 'POST', 
+    headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+    body: JSON.stringify({
+      email: params.email?.trim() || undefined,
+      phone: params.phone?.trim() || undefined,
+    }),
+  });
+  const data = await parseJson<{ message?: string; error?: string; retryAfterSec?: number }>(res); // Parse the response as a message or the error
+  // If the response is not successful, throw an error
+  if (!res.ok) {
+    throw new Error((data as { error?: string }).error || res.statusText); // Throw an error with the error message
+  }
+  return { message: (data as { message?: string }).message || 'If an account exists, a verification code has been sent or use your authenticator app if you use two-factor authentication.' }; // Return the message
+}
+
+// Verify forgot-password code; returns token for completeForgotPassword
+export async function verifyForgotCode(params: {
+  email?: string; // Email on the account
+  phone?: string; // Phone on the account
+  code: string; // Code for the forgot password
+}): Promise<{ resetToken: string }> {
+  //Fetch the verify forgot code endpoint
+  const res = await fetch(apiUrl('/api/auth/verify-forgot-code'), {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+    body: JSON.stringify({
+      email: params.email?.trim() || undefined,
+      phone: params.phone?.trim() || undefined,
+      code: params.code.replace(/\D/g, ''),
+    }),
+  });
+  const data = await parseJson<{ resetToken?: string; error?: string }>(res); // Parse the response as a reset token or the error
+  // If the response is not successful, throw an error
+  if (!res.ok) {
+    throw new Error((data as { error?: string }).error || res.statusText); // Throw an error with the error message
+  }
+  const resetToken = (data as { resetToken?: string }).resetToken; // Reset token from the response
+  //If the reset token is not found, throw an error
+  if (!resetToken) {
+    throw new Error('Invalid response from server'); // Throw an error with the error message
+  }
+  return { resetToken }; // Return the reset token
+}
+
+// Set new password after verifyForgotCode (uses reset token only)
+export async function completeForgotPassword(params: {
+  resetToken: string; // Reset token for the forgot password
+  newPassword: string; // New password for the forgot password
+  confirmPassword: string; // Confirm password for the forgot password
+}): Promise<{ message: string }> {
+  //Fetch the complete forgot password endpoint
+  const res = await fetch(apiUrl('/api/auth/complete-forgot-password'), {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+    body: JSON.stringify({
+      resetToken: params.resetToken,
+      new_password: params.newPassword,
+      confirm_password: params.confirmPassword,
+    }),
+  });
+  const data = await parseJson<{ message?: string; error?: string }>(res); // Parse the response as a message or the error
+  // If the response is not successful, throw an error
+  if (!res.ok) {
+    throw new Error((data as { error?: string }).error || res.statusText); // Throw an error with the error message
+  }
+  return { message: (data as { message?: string }).message || 'Your password has been updated.' }; // Return the message
+}
+
 // Untrust session function to untrust a specific session of the user
 export async function untrustSession(token: string, sessionId: number): Promise<void> { // Promise to return void
   //Fetch the untrust session endpoint

@@ -23,8 +23,6 @@ import { isStaffRole } from '@/lib/roles'; // Staff-only UI (Admin / IT)
 type AuthMode = 'signin' | 'signup'; // Define the AuthMode type as 'signin' or 'signup'
 type IdentifierType = 'email' | 'phone'; // Define the IdentifierType type as 'email' or 'phone'
 
-//Updates Week 3/4 submission: 
-//Added the manage portfolio screen button and role check for role based access to prevent customers from accessing the manage portfolio screen
 
 export default function AccountScreen() { // Define the AccountScreen component
 
@@ -214,6 +212,9 @@ export default function AccountScreen() { // Define the AccountScreen component
         <Pressable style={styles.menuButton} onPress={() => router.push('/rewards')}>
           <Text style={styles.menuButtonText}>Rewards</Text>
         </Pressable>
+        <Pressable style={styles.menuButton} onPress={() => router.push('/support')}>
+          <Text style={styles.menuButtonText}>Support</Text>
+        </Pressable>
         <Pressable style={styles.menuButton} onPress={() => router.push('/settings')}>
           <Text style={styles.menuButtonText}>Settings</Text>
         </Pressable>
@@ -291,6 +292,14 @@ export default function AccountScreen() { // Define the AccountScreen component
           secureTextEntry
           editable={!loading}
         />
+        {mode === 'signin' && (
+          <Pressable
+            onPress={() => router.push('/forgot-password')}
+            disabled={loading}
+            style={styles.forgotPasswordLinkWrap}>
+            <Text style={styles.forgotPasswordLink}>Forgot password?</Text>
+          </Pressable>
+        )}
         {mode === 'signup' && (
           <TextInput
             style={styles.input}
@@ -312,6 +321,9 @@ export default function AccountScreen() { // Define the AccountScreen component
           </Pressable>
         )}
         {error ? <Text style={styles.error}>{error}</Text> : null}
+        <Pressable style={styles.menuButton} onPress={() => router.push('/support')}>
+          <Text style={styles.menuButtonText}>Support</Text>
+        </Pressable>
         <Pressable
           style={[styles.primaryButton, loading && styles.primaryButtonDisabled]}
           onPress={mode === 'signin' ? handleSignIn : handleSignUp}
@@ -426,6 +438,16 @@ const styles = StyleSheet.create({
   primaryButtonText: {
     color: NavbarColors.text,
     fontSize: 17,
+    fontWeight: '600',
+  },
+  forgotPasswordLinkWrap: {
+    alignSelf: 'flex-end',
+    marginBottom: 12,
+    marginTop: -4,
+  },
+  forgotPasswordLink: {
+    color: GradientColors.pinkLight,
+    fontSize: 15,
     fontWeight: '600',
   },
   profileCard: {
