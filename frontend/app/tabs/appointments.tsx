@@ -212,6 +212,19 @@ export default function AppointmentsTabScreen() {
   );
 
   const isStaff = isStaffRole(user?.role); // Check if the user is a staff member
+  const openSupportForAppointment = useCallback(
+    (a: Appointment) => {
+      if (!user) return;
+      router.push({
+        pathname: '/support/create',
+        params: {
+          linkedAppointmentId: String(a.id),
+          prefillIssueType: 'appointment_change_policy',
+        },
+      });
+    },
+    [user, router]
+  );
   const list = useMemo(() => sortAppointments(appointments), [appointments]); // Sort the appointments
   const [detail, setDetail] = useState<Appointment | null>(null); // Set the detail state to null
   const [rescheduleOpen, setRescheduleOpen] = useState(false); // Set the reschedule open state to false
@@ -437,20 +450,27 @@ export default function AppointmentsTabScreen() {
               'Visit';
             const timeLabel = formatAppointmentTimeLabel(a.time);
             return (
-              <Pressable key={a.id} style={styles.row} onPress={() => setDetail(a)}>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.rowTitle}>{formatAppointmentDate(a.date)}</Text>
-                  <Text style={styles.rowSub}>
-                    {timeLabel}
-                    {' · '}
-                    {isStaff ? a.client_name : rowService}
-                    {' · '}
-                    {a.status}
-                  </Text>
-                  {isStaff ? <Text style={styles.rowMeta}>Payment: {payLabel}</Text> : null}
-                </View>
-                <Text style={styles.chev}>›</Text>
-              </Pressable>
+              <View key={a.id} style={styles.rowOuter}>
+                <Pressable style={styles.row} onPress={() => setDetail(a)}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.rowTitle}>{formatAppointmentDate(a.date)}</Text>
+                    <Text style={styles.rowSub}>
+                      {timeLabel}
+                      {' · '}
+                      {isStaff ? a.client_name : rowService}
+                      {' · '}
+                      {a.status}
+                    </Text>
+                    {isStaff ? <Text style={styles.rowMeta}>Payment: {payLabel}</Text> : null}
+                  </View>
+                  <Text style={styles.chev}>›</Text>
+                </Pressable>
+                {user ? (
+                  <Pressable style={styles.rowHelp} onPress={() => openSupportForAppointment(a)}>
+                    <Text style={styles.rowHelpText}>Help</Text>
+                  </Pressable>
+                ) : null}
+              </View>
             );
           })
         )}
@@ -473,6 +493,11 @@ export default function AppointmentsTabScreen() {
                 </Text>
                 <Text style={styles.detailLine}>Service: {serviceTitle}</Text>
                 <Text style={styles.detailLine}>Status: {detail.status}</Text>
+                {user ? (
+                  <Pressable style={styles.action} onPress={() => openSupportForAppointment(detail)}>
+                    <Text style={styles.actionText}>Help with this appointment</Text>
+                  </Pressable>
+                ) : null}
                 {isStaff ? (
                   <>
                     <Text style={styles.detailLine}>Client: {detail.client_name}</Text>
@@ -824,7 +849,14 @@ const styles = StyleSheet.create({
     color: NavbarColors.textMuted,
     fontSize: 15,
   },
+  rowOuter: {
+    flexDirection: 'row',
+    alignItems: 'stretch',
+    gap: 8,
+    marginBottom: 8,
+  },
   row: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: 14,
@@ -833,6 +865,21 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: NavbarColors.border,
     backgroundColor: 'rgba(0,0,0,0.1)',
+  },
+  rowHelp: {
+    justifyContent: 'center',
+    paddingHorizontal: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: NavbarColors.border,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    alignSelf: 'stretch',
+  },
+  rowHelpText: {
+    color: NavbarColors.text,
+    fontWeight: '700',
+    fontSize: 13,
+    alignSelf: 'center',
   },
   rowTitle: {
     color: NavbarColors.text,

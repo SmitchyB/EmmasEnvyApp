@@ -414,6 +414,11 @@ async function deleteSessionById(sessionId, userId) {
   return result.rowCount > 0;
 }
 
+/** Revoke all active sessions for a user (e.g. after password reset). */
+async function deleteAllSessionsForUser(userId) {
+  await pool.query(`DELETE FROM ${USER_SESSIONS_TABLE} WHERE user_id = $1`, [userId]);
+}
+
 module.exports = {
   pool,
   rowToUser,
@@ -439,4 +444,5 @@ module.exports = {
   getAuthSessionsForUser,
   updateSessionTrusted,
   deleteSessionById,
+  deleteAllSessionsForUser,
 };
