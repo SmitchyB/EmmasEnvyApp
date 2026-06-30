@@ -36,54 +36,23 @@ const root = path.join(__dirname, '..', '..');
 const demoAssets = path.join(root, 'DemoAssets');
 const uploadsRoot = path.join(__dirname, '..', 'uploads');
 
-const PORTFOLIO_NAIL_FILES = [
-  'VelvetMirage_ColorRedVelvet.jpg',
-  'GlassTipFade_ColorMagenta.jpg',
-  'RetroBloom_ColorPurpleBlossom.jpg',
-  'CelestialVeil.png',
-  'LuxeLattice.png',
-  'NeonNebula.png',
-  'QuartzMelt_ColorRoseQuartz.png',
-  'MattePop_ColorPurple.jpg',
-  'SoftSheenDuo_ColorPinkPurple.jpg',
-  'BarbedChic.png',
-];
+const NAIL_IMAGE_REGEX = /\.(png|jpe?g|gif|webp)$/i;
 
-/** Nail art copied into appointment inspo, completed-visit, and support attachment folders. */
-const INSPO_NAIL_FILES = [
-  'GlassTipFade_ColorMagenta.jpg',
-  'NeonNebula.png',
-  'RetroBloom_ColorPurpleBlossom.jpg',
-  'CelestialVeil.png',
-  'QuartzMelt_ColorRoseQuartz.png',
-  'MattePop_ColorOrange.jpg',
-  'PixelPop_ColorMulti.png',
-  'SnakeCharmer.png',
-];
-
-const COMPLETED_NAIL_FILES = [
-  'VelvetMirage_ColorRedVelvet.jpg',
-  'LuxeLattice.png',
-  'SoftSheenDuo_ColorPinkPurple.jpg',
-  'BarbedChic.png',
-  'QuartzMelt_ColorSeaBlue.jpg',
-  'MattePop_ColorPurple.jpg',
-  'TidepoolShimmer_ColorSeaBlue.jpg',
-  'GraffitiGloss.png',
-  'SolidLuxe_ColorRed.png',
-  'EvilEyeGlint.png',
-  'Opal Bloom.png',
-  'WiredEdge.png',
-];
-
-const SUPPORT_NAIL_FILES = [
-  'TornFrench.png',
-  'GraffitiGloss.png',
-  'PixelPop_ColorPinkTones.jpg',
-  'BasicFrenchRedux_ColorPop.jpg',
-  'VelvetMirage_ColorEmerald.jpg',
-  'SoftSheenDuo_ColorBeach.jpg',
-];
+/** All nail images under DemoAssets/Nails (portfolio uses the full set). */
+function listNailAssetFiles() {
+  const nailsDir = path.join(demoAssets, 'Nails');
+  if (!fs.existsSync(nailsDir)) {
+    throw new Error(`DemoAssets/Nails folder not found: ${nailsDir}`);
+  }
+  const files = fs
+    .readdirSync(nailsDir)
+    .filter((f) => NAIL_IMAGE_REGEX.test(f))
+    .sort((a, b) => a.localeCompare(b));
+  if (files.length === 0) {
+    throw new Error('DemoAssets/Nails has no image files');
+  }
+  return files;
+}
 
 const USERS = [
   {
@@ -293,6 +262,7 @@ function daysAgoAt(n, hour = 10) {
 }
 
 function copyAllAssets() {
+  const nailFiles = listNailAssetFiles();
   const paths = {};
   paths.emmaProfile = copyAsset('ProfilePhotos/Emma.jpg', 'profile_photos', 'seed-emma.jpg');
   paths.heroImage = copyAsset('ProfilePhotos/Emma.jpg', 'home_hero', 'seed-hero-emma.jpg');
@@ -303,22 +273,21 @@ function copyAllAssets() {
     paths[u.email] = rel;
   }
 
-  paths.portfolio = [];
-  for (const file of PORTFOLIO_NAIL_FILES) {
+  paths.portfolio = nailFiles.map((file) => {
     const destName = `seed-${file}`;
     const rel = copyNailAsset(file, 'portfolio', destName);
-    paths.portfolio.push({ url: rel, caption: captionFromFilename(file) });
-  }
+    return { url: rel, caption: captionFromFilename(file) };
+  });
 
-  paths.inspo = INSPO_NAIL_FILES.map((file, i) =>
+  paths.inspo = nailFiles.map((file, i) =>
     copyNailAsset(file, path.join('appointments', 'inspo'), `seed-inspo-${i + 1}-${file}`)
   );
 
-  paths.completed = COMPLETED_NAIL_FILES.map((file, i) =>
+  paths.completed = nailFiles.map((file, i) =>
     copyNailAsset(file, path.join('appointments', 'completedapt'), `seed-completed-${i + 1}-${file}`)
   );
 
-  paths.support = SUPPORT_NAIL_FILES.map((file, i) =>
+  paths.support = nailFiles.map((file, i) =>
     copyNailAsset(file, 'support', `seed-support-${i + 1}-${file}`)
   );
 
