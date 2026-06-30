@@ -1,3 +1,4 @@
+import '@/constants/config';
 import { LinearGradient } from 'expo-linear-gradient'; // Import the LinearGradient component from expo-linear-gradient for the gradient background
 import { DarkTheme, ThemeProvider } from '@react-navigation/native'; // Import the DarkTheme and ThemeProvider from @react-navigation/native for the theme
 import { Stack } from 'expo-router'; // Import the Stack from expo-router for the navigation

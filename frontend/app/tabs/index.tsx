@@ -11,7 +11,7 @@ import {
   View,
 } from 'react-native'; // Import the ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, and View components from react-native
 import { useSafeAreaInsets } from 'react-native-safe-area-context'; // Import the useSafeAreaInsets hook from react-native-safe-area-context
-import { getSiteSettings, type SiteSettings } from '@/lib/api'; // Import the getSiteSettings function and the SiteSettings type from @/lib/api
+import { getSiteSettings, type SiteSettings } from '@emmasenvy/shared'; // Import the getSiteSettings function and the SiteSettings type from @/lib/api
 import { uploadsUrl } from '@/constants/config'; // Import the uploadsUrl function from @/constants/config
 import { GradientColors, NavbarColors } from '@/constants/theme'; // Theme colors for CTA
 

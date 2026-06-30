@@ -4,6 +4,7 @@
  * - Run: EXPO_PUBLIC_API_URL=http://YOUR_IP:3002 npx expo start
  */
 import Constants from 'expo-constants';
+import { initSharedConfig, uploadsUrl as sharedUploadsUrl } from '@emmasenvy/shared';
 
 const extra = (Constants.expoConfig?.extra ?? {}) as Record<string, string | undefined>;
 const procEnv = typeof process === 'undefined' ? undefined : (process as unknown as { env?: Record<string, string> }).env;
@@ -12,14 +13,13 @@ const envUrl = procEnv?.EXPO_PUBLIC_API_URL;
 
 export const API_BASE = envUrl ?? extra?.EXPO_PUBLIC_API_URL ?? 'http://localhost:3002';
 
+initSharedConfig({ apiBase: API_BASE });
+
 /** Square Web Payments (POS card modal). Must match the app/location in Square Dashboard. */
 export const SQUARE_APPLICATION_ID =
   procEnv?.EXPO_PUBLIC_SQUARE_APPLICATION_ID ?? extra?.EXPO_PUBLIC_SQUARE_APPLICATION_ID ?? '';
 export const SQUARE_LOCATION_ID = procEnv?.EXPO_PUBLIC_SQUARE_LOCATION_ID ?? extra?.EXPO_PUBLIC_SQUARE_LOCATION_ID ?? '';
 
 export function uploadsUrl(path: string | null | undefined): string | null {
-  if (!path || typeof path !== 'string') return null;
-  const base = API_BASE.replace(/\/$/, '');
-  const p = path.startsWith('/') ? path.slice(1) : path;
-  return `${base}/uploads/${p}`;
+  return sharedUploadsUrl(path);
 }

@@ -9,7 +9,7 @@ import {
 } from 'react-native'; // Import the ActivityIndicator, Pressable, StyleSheet, Text, TextInput, and View from react-native for the components
 import { GradientColors, NavbarColors } from '@/constants/theme'; // Import the GradientColors and NavbarColors from @/constants/theme for the colors
 import { useAuth } from '@/contexts/AuthContext'; // Import the useAuth from @/contexts/AuthContext for the authentication
-import { update2FA, updateAccount } from '@/lib/auth-api'; // Import the update2FA and updateAccount from @/lib/auth-api for the update 2FA and update account
+import { update2FA, updateAccount } from '@emmasenvy/shared'; // Import the update2FA and updateAccount from @/lib/auth-api for the update 2FA and update account
 
 type TwoFactorType = 'email' | 'phone' | 'totp'; // Define the type for the two factor type
 

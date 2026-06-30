@@ -17,8 +17,8 @@ import {
   guestCreateTicket, // Import the guestCreateTicket module from @/lib/tickets-api
   guestFindRecords, // Import the guestFindRecords module from @/lib/tickets-api
   guestVerifyAppointment, // Import the guestVerifyAppointment module from @/lib/tickets-api
-} from '@/lib/tickets-api';
-import type { GuestInvoiceOption, IssueTypeOption } from '@/lib/ticket-types'; // Import the GuestInvoiceOption and IssueTypeOption modules from @/lib/ticket-types
+} from '@emmasenvy/shared';
+import type { GuestInvoiceOption, IssueTypeOption } from '@emmasenvy/shared'; // Import the GuestInvoiceOption and IssueTypeOption modules from @/lib/ticket-types
 
 //Define the GuestNewTicketScreen component
 export default function GuestNewTicketScreen() {

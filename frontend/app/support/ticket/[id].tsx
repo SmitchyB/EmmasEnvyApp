@@ -17,9 +17,9 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'; // Import th
 import { uploadsUrl } from '@/constants/config'; // Import the uploadsUrl module from @/constants/config
 import { GradientColors, NavbarColors } from '@/constants/theme'; // Import the GradientColors and NavbarColors modules from @/constants/theme
 import { useAuth } from '@/contexts/AuthContext'; // Import the useAuth module from @/contexts/AuthContext
-import { isStaffRole } from '@/lib/roles'; // Import the isStaffRole module from @/lib/roles
-import { closeTicketAsCustomer, getTicket, patchTicketStaff, postTicketMessage } from '@/lib/tickets-api'; // Import the closeTicketAsCustomer, getTicket, patchTicketStaff, and postTicketMessage modules from @/lib/tickets-api
-import type { SupportMessage, SupportTicket } from '@/lib/ticket-types'; // Import the SupportMessage and SupportTicket types from @/lib/ticket-types
+import { isStaffRole } from '@emmasenvy/shared'; // Import the isStaffRole module from @/lib/roles
+import { closeTicketAsCustomer, getTicket, patchTicketStaff, postTicketMessage } from '@emmasenvy/shared'; // Import the closeTicketAsCustomer, getTicket, patchTicketStaff, and postTicketMessage modules from @/lib/tickets-api
+import type { SupportMessage, SupportTicket } from '@emmasenvy/shared'; // Import the SupportMessage and SupportTicket types from @/lib/ticket-types
 
 // Define the attachmentUri function to get the attachment URI
 function attachmentUri(attUrl: string): string | null {

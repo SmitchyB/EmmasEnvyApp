@@ -13,8 +13,8 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context'; // Import the useSafeAreaInsets module from react-native-safe-area-context
 import { GradientColors, NavbarColors } from '@/constants/theme'; // Import the GradientColors and NavbarColors modules from @/constants/theme
 import { useAuth } from '@/contexts/AuthContext'; // Import the useAuth module from @/contexts/AuthContext
-import { createTicket, fetchIssueTypes } from '@/lib/tickets-api'; // Import the createTicket and fetchIssueTypes modules from @/lib/tickets-api
-import type { IssueTypeOption } from '@/lib/ticket-types'; // Import the IssueTypeOption type from @/lib/ticket-types
+import { createTicket, fetchIssueTypes } from '@emmasenvy/shared'; // Import the createTicket and fetchIssueTypes modules from @/lib/tickets-api
+import type { IssueTypeOption } from '@emmasenvy/shared'; // Import the IssueTypeOption type from @/lib/ticket-types
 
 // Define the SupportCreateScreen component
 export default function SupportCreateScreen() {

@@ -14,8 +14,8 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context'; // Import the useSafeAreaInsets hook from react-native-safe-area-context
 import { NavbarColors } from '@/constants/theme'; // Import the NavbarColors module from @/constants/theme
 import { useAuth } from '@/contexts/AuthContext'; // Import the useAuth hook from @/contexts/AuthContext
-import { fetchPublicServiceTypes } from '@/lib/booking-api'; // Import the fetchPublicServiceTypes function from @/lib/booking-api
-import type { ServiceType } from '@/lib/booking-types'; // Import the ServiceType type from @/lib/booking-types
+import { fetchPublicServiceTypes } from '@emmasenvy/shared'; // Import the fetchPublicServiceTypes function from @/lib/booking-api
+import type { ServiceType } from '@emmasenvy/shared'; // Import the ServiceType type from @/lib/booking-types
 import {
   createNewsletterApi, // Import the createNewsletterApi function from @/lib/newsletters-promos-api
   createPromoCodeApi, // Import the createPromoCodeApi function from @/lib/newsletters-promos-api
@@ -29,8 +29,8 @@ import {
   serviceLabel, // Import the serviceLabel function from @/lib/newsletters-promos-api
   type NewsletterDto, // Import the NewsletterDto type from @/lib/newsletters-promos-api
   type PromoCodeDto, // Import the PromoCodeDto type from @/lib/newsletters-promos-api
-} from '@/lib/newsletters-promos-api';
-import { isStaffRole } from '@/lib/roles'; // Import the isStaffRole function from @/lib/roles
+} from '@emmasenvy/shared';
+import { isStaffRole } from '@emmasenvy/shared'; // Import the isStaffRole function from @/lib/roles
 
 /* This file is the frontend screen for the newsletters and promos. It is used to create, update, and delete newsletters and promos. */ 
 

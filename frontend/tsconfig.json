@@ -5,6 +5,9 @@
     "paths": {
       "@/*": [
         "./*"
+      ],
+      "@emmasenvy/shared": [
+        "../packages/shared/src/index.ts"
       ]
     }
   },

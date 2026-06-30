@@ -13,7 +13,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context'; // Import the useSafeAreaInsets module from react-native-safe-area-context
 import { GradientColors, NavbarColors } from '@/constants/theme'; // Import the GradientColors and NavbarColors modules from @/constants/theme
 import { setGuestTicketToken } from '@/lib/guest-ticket-storage'; // Import the setGuestTicketToken module from @/lib/guest-ticket-storage
-import { guestClaimTicket } from '@/lib/tickets-api'; // Import the guestClaimTicket module from @/lib/tickets-api
+import { guestClaimTicket } from '@emmasenvy/shared'; // Import the guestClaimTicket module from @/lib/tickets-api
 
 //
 //Define the GuestClaimScreen component

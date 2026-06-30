@@ -1,6 +1,6 @@
-import { useRouter } from 'expo-router'; // Import the useRouter from expo-router for the router
-import * as ImagePicker from 'expo-image-picker'; // Import the ImagePicker from expo-image-picker for the image picker
-import React, { useCallback, useEffect, useState } from 'react'; // Import the React, useCallback, useEffect, and useState from react for the state
+import { useRouter } from 'expo-router';
+import * as ImagePicker from 'expo-image-picker';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -13,21 +13,23 @@ import {
   Text,
   TextInput,
   View,
-} from 'react-native'; // Import the ActivityIndicator, Image, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, and View from react-native for the components
-import { useSafeAreaInsets } from 'react-native-safe-area-context'; // Import the useSafeAreaInsets from react-native-safe-area-context for the safe area insets
-import { uploadsUrl } from '@/constants/config'; // Import the uploadsUrl from @/constants/config for the uploads url
-import { GradientColors, NavbarColors } from '@/constants/theme'; // Import the GradientColors and NavbarColors from @/constants/theme for the colors
-import { useAuth } from '@/contexts/AuthContext'; // Import the useAuth from @/contexts/AuthContext for the authentication
+} from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { uploadsUrl } from '@/constants/config';
+import { GradientColors, NavbarColors } from '@/constants/theme';
+import { useAuth } from '@/contexts/AuthContext';
 import {
   getSessions,
   revokeSession,
   untrustSession,
   updateProfile,
   updateAccount,
-  uploadProfilePhoto,
-} from '@/lib/auth-api'; // Import the getSessions, revokeSession, untrustSession, updateProfile, updateAccount, and uploadProfilePhoto from @/lib/auth-api for the authentication
-import { TwoFactorSection } from '@/components/TwoFactorSection'; // Import the TwoFactorSection from @/components/TwoFactorSection for the two factor section
-import { deleteAccountApi, requestDataExport, saveDataExportFile } from '@/lib/data-privacy-api';
+  deleteAccountApi,
+  requestDataExport,
+} from '@emmasenvy/shared';
+import { uploadProfilePhoto } from '@/lib/upload-helpers';
+import { TwoFactorSection } from '@/components/TwoFactorSection';
+import { saveDataExportFile } from '@/lib/data-privacy-export';
 
 // Define the SettingsScreen component
 export default function SettingsScreen() {

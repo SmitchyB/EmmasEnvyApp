@@ -1,8 +1,5 @@
-//Ticket types shared between the frontend and backend to ensure responses match
+export type SupportHandlerTeam = 'admin' | 'it';
 
-export type SupportHandlerTeam = 'admin' | 'it'; // Define the support handler team type
-
-//Define the support ticket status type
 export type SupportTicketStatus =
   | 'open'
   | 'pending_customer'
@@ -10,13 +7,12 @@ export type SupportTicketStatus =
   | 'resolved'
   | 'closed';
 
-//Define the issue type option interface
 export interface IssueTypeOption {
   id: string;
   label: string;
   handler_team: SupportHandlerTeam;
 }
-//Define the support ticket interface
+
 export interface SupportTicket {
   id: number;
   public_reference: string;
@@ -36,7 +32,7 @@ export interface SupportTicket {
   resolved_at: string | null;
   last_message_at: string | null;
 }
-//Define the support message interface
+
 export interface SupportMessage {
   id: string;
   author_kind: 'guest' | 'user' | 'staff' | 'system';
@@ -46,7 +42,7 @@ export interface SupportMessage {
   created_at: string;
   attachments: { id: number; url: string; mime_type: string | null; created_at: string }[];
 }
-//Define the guest invoice option interface
+
 export interface GuestInvoiceOption {
   invoice_db_id: number;
   invoice_label: string;

@@ -1,4 +1,3 @@
-//User shape returned by backend (GET /me, login, register, verify-2fa).
 export interface User {
   id: number;
   first_name: string | null;
@@ -17,20 +16,17 @@ export interface User {
   reward_points: number;
 }
 
-//AuthSession is the shape returned by the backend for the authentication session.
 export interface AuthSession {
   user: User;
   token: string;
 }
 
-//Requires2FAResponse is the shape returned by the backend for the requires 2FA response.
 export interface Requires2FAResponse {
   requires2FA: true;
   tempToken: string;
   twoFactorType: 'email' | 'phone' | 'totp';
 }
 
-// Session list item from GET /api/auth/sessions
 export interface AuthSessionItem {
   id: number;
   session_token: string;

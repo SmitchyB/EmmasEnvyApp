@@ -16,9 +16,9 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'; // Import th
 import { uploadsUrl } from '@/constants/config'; // Import the uploadsUrl function from @/constants/config
 import { GradientColors, NavbarColors } from '@/constants/theme'; // Import the GradientColors and NavbarColors constants from @/constants/theme
 import { useAuth } from '@/contexts/AuthContext'; // Import the useAuth hook from @/contexts/AuthContext
-import { login } from '@/lib/auth-api'; // Import the login function from @/lib/auth-api
-import { setSignupDraft } from '@/lib/signup-draft'; // Import the setSignupDraft function from @/lib/signup-draft
-import { isStaffRole } from '@/lib/roles'; // Staff-only UI (Admin / IT)
+import { login } from '@emmasenvy/shared'; // Import the login function from @/lib/auth-api
+import { setSignupDraft } from '@emmasenvy/shared'; // Import the setSignupDraft function from @/lib/signup-draft
+import { isStaffRole } from '@emmasenvy/shared'; // Staff-only UI (Admin / IT)
 
 type AuthMode = 'signin' | 'signup'; // Define the AuthMode type as 'signin' or 'signup'
 type IdentifierType = 'email' | 'phone'; // Define the IdentifierType type as 'email' or 'phone'

@@ -14,10 +14,10 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context'; // Import the useSafeAreaInsets hook from react-native-safe-area-context
 import { NavbarColors } from '@/constants/theme'; // Import the NavbarColors module from @/constants/theme
 import { useAuth } from '@/contexts/AuthContext'; // Import the useAuth hook from @/contexts/AuthContext
-import { fetchPublicServiceTypes } from '@/lib/booking-api'; // Import the fetchPublicServiceTypes function from @/lib/booking-api
-import type { ServiceType } from '@/lib/booking-types'; // Import the ServiceType type from @/lib/booking-types
-import { serviceLabel } from '@/lib/newsletters-promos-api'; // Import the serviceLabel function from @/lib/newsletters-promos-api
-import { isStaffRole } from '@/lib/roles'; // Import the isStaffRole function from @/lib/roles
+import { fetchPublicServiceTypes } from '@emmasenvy/shared'; // Import the fetchPublicServiceTypes function from @/lib/booking-api
+import type { ServiceType } from '@emmasenvy/shared'; // Import the ServiceType type from @/lib/booking-types
+import { serviceLabel } from '@emmasenvy/shared'; // Import the serviceLabel function from @/lib/newsletters-promos-api
+import { isStaffRole } from '@emmasenvy/shared'; // Import the isStaffRole function from @/lib/roles
 import {
   createRewardOfferingApi, // Import the createRewardOfferingApi function from @/lib/rewards-api
   deleteRewardOfferingApi, // Import the deleteRewardOfferingApi function from @/lib/rewards-api
@@ -28,7 +28,7 @@ import {
   type MeRewardsResponse, // Import the MeRewardsResponse type from @/lib/rewards-api
   type RewardOfferingDto, // Import the RewardOfferingDto type from @/lib/rewards-api
   type RewardTypeApi, // Import the RewardTypeApi type from @/lib/rewards-api
-} from '@/lib/rewards-api';
+} from '@emmasenvy/shared';
 
 /* This file is the frontend screen for the rewards. It is used to create, update, and delete rewards. */ 
 

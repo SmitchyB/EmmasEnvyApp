@@ -1,6 +1,5 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'; // Import React and hooks from the react library
-import { listAppointments } from '@/lib/booking-api'; // Import the listAppointments function from the booking-api file
-import type { Appointment } from '@/lib/booking-types'; // Import the Appointment type from the booking-types file
+import { listAppointments, type Appointment } from '@emmasenvy/shared';
 import { useAuth } from '@/contexts/AuthContext'; // Import the useAuth hook from the AuthContext file
 
 // Define the BookingDataContextValue interface

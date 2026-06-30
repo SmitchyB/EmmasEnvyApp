@@ -17,8 +17,8 @@ import { useRouter } from 'expo-router'; // Book now → appointment flow
 import { useSafeAreaInsets } from 'react-native-safe-area-context'; // Import the useSafeAreaInsets hook from the react-native-safe-area-context library
 import { uploadsUrl } from '@/constants/config'; // Import the uploadsUrl function from the constants/config file
 import { GradientColors, NavbarColors } from '@/constants/theme'; // Import the GradientColors and NavbarColors from the constants/theme file
-import type { Portfolio, PortfolioPhoto } from '@/lib/portfolio-api'; // Import the Portfolio and PortfolioPhoto types from the portfolio-api file
-import { getPrimaryPortfolio } from '@/lib/portfolio-api'; // Import the getPrimaryPortfolio function from the portfolio-api file
+import type { Portfolio, PortfolioPhoto } from '@emmasenvy/shared'; // Import the Portfolio and PortfolioPhoto types from the portfolio-api file
+import { getPrimaryPortfolio } from '@emmasenvy/shared'; // Import the getPrimaryPortfolio function from the portfolio-api file
 import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler'; // Import Gesture API so pinch and swipe share one native orchestrator
 
 

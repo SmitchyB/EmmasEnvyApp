@@ -14,9 +14,9 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context'; // Import the useSafeAreaInsets hook from react-native-safe-area-context for the safe area insets
 import { GradientColors, NavbarColors } from '@/constants/theme'; // Import the GradientColors and NavbarColors modules from @/constants/theme
 import { useAuth } from '@/contexts/AuthContext'; // Import the useAuth hook from @/contexts/AuthContext
-import { isStaffRole } from '@/lib/roles'; // Import the isStaffRole function from @/lib/roles
-import { listMyTickets } from '@/lib/tickets-api'; // Import the listMyTickets function from @/lib/tickets-api
-import type { SupportTicket, SupportTicketStatus } from '@/lib/ticket-types'; // Import the SupportTicket and SupportTicketStatus types from @/lib/ticket-types
+import { isStaffRole } from '@emmasenvy/shared'; // Import the isStaffRole function from @/lib/roles
+import { listMyTickets } from '@emmasenvy/shared'; // Import the listMyTickets function from @/lib/tickets-api
+import type { SupportTicket, SupportTicketStatus } from '@emmasenvy/shared'; // Import the SupportTicket and SupportTicketStatus types from @/lib/ticket-types
 
 // Define the status filters for the support tickets
 const STATUS_FILTERS: { id: 'all' | SupportTicketStatus; label: string }[] = [

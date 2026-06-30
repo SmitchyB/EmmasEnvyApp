@@ -1,6 +1,6 @@
 // This file is used to handle the POS API for the frontend
-import { apiUrl, fetchWithAuth } from '@/lib/api'; //Import the apiUrl and fetchWithAuth from the lib/api for the api url and fetch with auth
-import type { RewardOfferingDto } from '@/lib/rewards-api'; //Import the RewardOfferingDto from the lib/rewards-api for the reward offering dto
+import { apiUrl, fetchWithAuth } from '@emmasenvy/shared';
+import type { RewardOfferingDto } from '@emmasenvy/shared';
 
 // Function to read the error
 async function readError(res: Response): Promise<string> {

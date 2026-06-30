@@ -1,11 +1,8 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'; // Import the React, createContext, useCallback, useContext, useEffect, useMemo, useRef, and useState from react for the authentication context
 import AsyncStorage from '@react-native-async-storage/async-storage'; // Import the AsyncStorage from @react-native-async-storage/async-storage for the authentication context
 import * as Crypto from 'expo-crypto'; // Import the Crypto from expo-crypto for the authentication context
-import { API_BASE } from '@/constants/config'; // Import the API_BASE from @/constants/config for the authentication context
-import type { User } from '@/lib/auth-types'; // Import the User type from @/lib/auth-types for the authentication context
-
-const AUTH_TOKEN_KEY = '@emmasenvy/auth_token'; // Define the key for the authentication token
-const DEVICE_ID_KEY = '@emmasenvy/device_id'; // Define the key for the device id
+import { API_BASE } from '@/constants/config';
+import { AUTH_TOKEN_KEY, DEVICE_ID_KEY, type User } from '@emmasenvy/shared';
 
 /** AuthState is the state for the authentication context. */
 interface AuthState {

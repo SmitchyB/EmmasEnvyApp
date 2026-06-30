@@ -21,13 +21,13 @@ import { uploadsUrl } from '@/constants/config'; // Import the uploadsUrl module
 import { GradientColors, NavbarColors } from '@/constants/theme'; // Import the GradientColors and NavbarColors modules from @/constants/theme
 import { useAuth } from '@/contexts/AuthContext'; // Import the useAuth module from @/contexts/AuthContext
 import {
-  PortfolioPhoto, // Import the PortfolioPhoto type from @/lib/portfolio-api
-  deletePortfolioPhoto, // Import the deletePortfolioPhoto function from @/lib/portfolio-api
-  getMyPortfolio, // Import the getMyPortfolio function from @/lib/portfolio-api
-  saveMyPortfolio, // Import the saveMyPortfolio function from @/lib/portfolio-api
-  updatePortfolioPhoto, // Import the updatePortfolioPhoto function from @/lib/portfolio-api
-  uploadPortfolioPhoto, // Import the uploadPortfolioPhoto function from @/lib/portfolio-api
-} from '@/lib/portfolio-api';
+  type PortfolioPhoto,
+  deletePortfolioPhoto,
+  getMyPortfolio,
+  saveMyPortfolio,
+  updatePortfolioPhoto,
+} from '@emmasenvy/shared';
+import { uploadPortfolioPhoto } from '@/lib/upload-helpers';
 
 //Week 5 Changes: Fixed issues with lagging when scrolling through the portfolio photos.
 //Define the ManagePhotoThumb component

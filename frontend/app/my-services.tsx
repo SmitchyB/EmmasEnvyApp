@@ -18,10 +18,10 @@ import {
   deleteServiceTypeApi, // Import the deleteServiceTypeApi module from the booking-api file
   listMyServiceTypes, // Import the listMyServiceTypes module from the booking-api file
   updateServiceTypeApi, // Import the updateServiceTypeApi module from the booking-api file
-} from '@/lib/booking-api';
-import type { ServiceType } from '@/lib/booking-types'; // Import the ServiceType type from the booking-types file
-import { minutesToDurationString } from '@/lib/booking-duration'; // Import the minutesToDurationString module from the booking-duration file
-import { isStaffRole } from '@/lib/roles'; // Import the isStaffRole module from the roles file
+} from '@emmasenvy/shared';
+import type { ServiceType } from '@emmasenvy/shared'; // Import the ServiceType type from the booking-types file
+import { minutesToDurationString } from '@emmasenvy/shared'; // Import the minutesToDurationString module from the booking-duration file
+import { isStaffRole } from '@emmasenvy/shared'; // Import the isStaffRole module from the roles file
 
 // Function to return the my services screen
 export default function MyServicesScreen() {

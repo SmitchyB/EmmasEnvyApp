@@ -12,8 +12,8 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context'; // Import the useSafeAreaInsets module from the react-native-safe-area-context library
 import { uploadsUrl } from '@/constants/config'; // Import the uploadsUrl function from the constants/config file
 import { GradientColors, NavbarColors } from '@/constants/theme'; // Import theme colors from the constants/theme file
-import type { PortfolioPhoto } from '@/lib/portfolio-api'; // Import the PortfolioPhoto type from the portfolio-api file
-import { getPrimaryPortfolio } from '@/lib/portfolio-api'; // Import the getPrimaryPortfolio function from the portfolio-api file
+import type { PortfolioPhoto } from '@emmasenvy/shared'; // Import the PortfolioPhoto type from the portfolio-api file
+import { getPrimaryPortfolio } from '@emmasenvy/shared'; // Import the getPrimaryPortfolio function from the portfolio-api file
 
 type Props = {
   visible: boolean; // Controls modal visibility

@@ -19,20 +19,23 @@ import { NavbarColors } from '@/constants/theme'; //Import the NavbarColors from
 import { SQUARE_APPLICATION_ID, SQUARE_LOCATION_ID } from '@/constants/config'; //Import the SQUARE_APPLICATION_ID and SQUARE_LOCATION_ID from the constants/config for the square application id and square location id
 import { useAuth } from '@/contexts/AuthContext'; //Import the useAuth from the contexts/AuthContext for the auth
 import { useBookingData } from '@/contexts/BookingDataContext'; //Import the useBookingData from the contexts/BookingDataContext for the booking data
-import { getAppointment } from '@/lib/booking-api'; //Import the getAppointment from the lib/booking-api for the get appointment
-import type { Appointment } from '@/lib/booking-types'; //Import the Appointment from the lib/booking-types for the appointment
 import {
-  getCustomerEligibleRewards, //Import the getCustomerEligibleRewards from the lib/pos-api for the get customer eligible rewards
-  posChargeCardApi, //Import the posChargeCardApi from the lib/pos-api for the pos charge card api
-  posPreview, //Import the posPreview from the lib/pos-api for the pos preview
-  posRecordCashPayment, //Import the posRecordCashPayment from the lib/pos-api for the pos record cash payment
-  type PosPaymentSuccess, //Import the PosPaymentSuccess from the lib/pos-api for the pos payment success
-  type PosPreviewResponse, //Import the PosPreviewResponse from the lib/pos-api for the pos preview response
+  getAppointment,
+  listAvailableRewardOfferings,
+  isStaffRole,
+  type Appointment,
+  type RewardOfferingDto,
+} from '@emmasenvy/shared';
+import {
+  getCustomerEligibleRewards,
+  posChargeCardApi,
+  posPreview,
+  posRecordCashPayment,
+  type PosPaymentSuccess,
+  type PosPreviewResponse,
 } from '@/lib/pos-api';
-import { listAvailableRewardOfferings, type RewardOfferingDto } from '@/lib/rewards-api'; //Import the listAvailableRewardOfferings and type RewardOfferingDto from the lib/rewards-api for the list available reward offerings and reward offering dto
-import { isStaffRole } from '@/lib/roles'; //Import the isStaffRole from the lib/roles for the is staff role
 
-type Step = 'totals' | 'method' | 'cash' | 'card' | 'done'; //Import the Step from the lib/pos-checkout for the step
+type Step = 'totals' | 'method' | 'cash' | 'card' | 'done';
 
 // Function to get the error message
 function errMsg(e: unknown): string {

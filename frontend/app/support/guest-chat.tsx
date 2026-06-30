@@ -16,8 +16,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'; // Import th
 import { uploadsUrl } from '@/constants/config'; // Import the uploadsUrl module from @/constants/config
 import { GradientColors, NavbarColors } from '@/constants/theme'; // Import the GradientColors and NavbarColors modules from @/constants/theme
 import { clearGuestTicketToken, getGuestTicketToken } from '@/lib/guest-ticket-storage'; // Import the clearGuestTicketToken and getGuestTicketToken modules from @/lib/guest-ticket-storage
-import { guestCloseTicket, guestGetThread, guestPostMessage } from '@/lib/tickets-api'; // Import the guestCloseTicket, guestGetThread, and guestPostMessage modules from @/lib/tickets-api
-import type { SupportMessage, SupportTicket } from '@/lib/ticket-types'; // Import the SupportMessage and SupportTicket types from @/lib/ticket-types
+import { guestCloseTicket, guestGetThread, guestPostMessage } from '@emmasenvy/shared'; // Import the guestCloseTicket, guestGetThread, and guestPostMessage modules from @/lib/tickets-api
+import type { SupportMessage, SupportTicket } from '@emmasenvy/shared'; // Import the SupportMessage and SupportTicket types from @/lib/ticket-types
 
 //Function to get the attachment URI
 function attachmentUri(attUrl: string): string | null {

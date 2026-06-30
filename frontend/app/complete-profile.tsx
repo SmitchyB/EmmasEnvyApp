@@ -15,8 +15,8 @@ import {
 } from 'react-native'; // Import the ActivityIndicator, Image, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, and View from react-native for the components
 import { useSafeAreaInsets } from 'react-native-safe-area-context'; // Import the useSafeAreaInsets from react-native-safe-area-context for the safe area insets
 import { useAuth } from '@/contexts/AuthContext'; // Import the useAuth from @/contexts/AuthContext for the authentication
-import { completeProfile, uploadProfilePhoto } from '@/lib/auth-api'; // Import the completeProfile and uploadProfilePhoto from @/lib/auth-api for the complete profile and upload profile photo
-import type { CompleteProfileResult } from '@/lib/auth-api'; // Import the CompleteProfileResult from @/lib/auth-api for the complete profile result
+import { completeProfile, type CompleteProfileResult } from '@emmasenvy/shared';
+import { uploadProfilePhoto } from '@/lib/upload-helpers';
 import { GradientColors, NavbarColors } from '@/constants/theme'; // Import the GradientColors and NavbarColors from @/constants/theme for the colors
 
 type SignedUpWith = 'email' | 'phone'; // Define the type for the signed up with

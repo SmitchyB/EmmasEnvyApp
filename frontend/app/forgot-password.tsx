@@ -12,7 +12,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context'; // for safe area insets
 import { GradientColors, NavbarColors } from '@/constants/theme'; // for colors
-import { completeForgotPassword, requestPasswordReset, verifyForgotCode } from '@/lib/auth-api'; // for authentication
+import { completeForgotPassword, requestPasswordReset, verifyForgotCode } from '@emmasenvy/shared'; // for authentication
 
 const RESEND_COOLDOWN_SEC = 5 * 60; // 5 minute cooldown between sends for same email/phone
 

@@ -10,8 +10,8 @@ import {
 } from 'react-native'; // Import the ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, and View from react-native for the components
 import { useSafeAreaInsets } from 'react-native-safe-area-context'; // Import the useSafeAreaInsets from react-native-safe-area-context for the safe area insets
 import { useAuth } from '@/contexts/AuthContext'; // Import the useAuth from @/contexts/AuthContext for the authentication
-import { register } from '@/lib/auth-api'; // Import the register from @/lib/auth-api for the registration
-import { getSignupDraft, clearSignupDraft } from '@/lib/signup-draft'; // Import the getSignupDraft and clearSignupDraft from @/lib/signup-draft for the signup draft
+import { register } from '@emmasenvy/shared'; // Import the register from @/lib/auth-api for the registration
+import { getSignupDraft, clearSignupDraft } from '@emmasenvy/shared'; // Import the getSignupDraft and clearSignupDraft from @/lib/signup-draft for the signup draft
 import { GradientColors, NavbarColors } from '@/constants/theme'; // Import the GradientColors and NavbarColors from @/constants/theme for the colors
 
 type Step = 'choice' | 'method' | 'totp-setup'; // Define the type for the step

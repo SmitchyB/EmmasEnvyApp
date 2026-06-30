@@ -2,7 +2,9 @@
 
 import AsyncStorage from '@react-native-async-storage/async-storage'; // Import the AsyncStorage module from @react-native-async-storage/async-storage
 
-const KEY = '@emmas_support_guest_jwt'; // Define the key for the guest ticket token
+import { GUEST_TICKET_KEY } from '@emmasenvy/shared';
+
+const KEY = GUEST_TICKET_KEY;
 
 //Define the setGuestTicketToken function to set the guest ticket token
 export async function setGuestTicketToken(token: string): Promise<void> {

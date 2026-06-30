@@ -12,7 +12,7 @@ import {
 } from 'react-native'; // Import the ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, StyleSheet, Text, TextInput, and View from react-native for the components
 import { useSafeAreaInsets } from 'react-native-safe-area-context'; // Import the useSafeAreaInsets from react-native-safe-area-context for the safe area insets
 import { useAuth } from '@/contexts/AuthContext'; // Import the useAuth from @/contexts/AuthContext for the authentication
-import { verify2FA } from '@/lib/auth-api'; // Import the verify2FA from @/lib/auth-api for the verification of the 2FA
+import { verify2FA } from '@emmasenvy/shared'; // Import the verify2FA from @/lib/auth-api for the verification of the 2FA
 import { GradientColors, NavbarColors } from '@/constants/theme'; // Import the GradientColors and NavbarColors from @/constants/theme for the colors
 
 // Define the Verify2FAScreen component

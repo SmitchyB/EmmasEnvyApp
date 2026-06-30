@@ -16,11 +16,11 @@ import { PortfolioPickerModal } from '@/components/booking/PortfolioPickerModal'
 import { NavbarColors } from '@/constants/theme'; // Import the NavbarColors module from the constants/theme file
 import { useAuth } from '@/contexts/AuthContext'; // Import the useAuth module from the contexts/AuthContext file
 import { useBookingData } from '@/contexts/BookingDataContext'; // Import the useBookingData module from the contexts/BookingDataContext file
-import { createAppointment, fetchAppointmentAvailability, fetchPublicServiceTypes } from '@/lib/booking-api'; // Import the createAppointment, fetchAppointmentAvailability, and fetchPublicServiceTypes modules from the booking-api file
-import type { ServiceType } from '@/lib/booking-types'; // Import the ServiceType type from the booking-types file
-import { durationToMinutes } from '@/lib/booking-duration'; // Import the durationToMinutes module from the booking-duration file
-import { isStaffRole } from '@/lib/roles'; // Import the isStaffRole module from the roles file
-import { getPrimaryPortfolio } from '@/lib/portfolio-api'; // Import the getPrimaryPortfolio module from the portfolio-api file
+import { createAppointment, fetchAppointmentAvailability, fetchPublicServiceTypes } from '@emmasenvy/shared'; // Import the createAppointment, fetchAppointmentAvailability, and fetchPublicServiceTypes modules from the booking-api file
+import type { ServiceType } from '@emmasenvy/shared'; // Import the ServiceType type from the booking-types file
+import { durationToMinutes } from '@emmasenvy/shared'; // Import the durationToMinutes module from the booking-duration file
+import { isStaffRole } from '@emmasenvy/shared'; // Import the isStaffRole module from the roles file
+import { getPrimaryPortfolio } from '@emmasenvy/shared'; // Import the getPrimaryPortfolio module from the portfolio-api file
 
 const STEPS = ['Service', 'Date', 'Time', 'Contact', 'Notes', 'Inspiration'] as const; // Wizard step titles shown in the header label
 

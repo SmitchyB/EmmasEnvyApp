@@ -22,16 +22,17 @@ import { NavbarColors } from '@/constants/theme'; // Import the NavbarColors mod
 import { useAuth } from '@/contexts/AuthContext'; // Import the useAuth module from the contexts/AuthContext file
 import { useBookingData } from '@/contexts/BookingDataContext'; // Import the useBookingData module from the contexts/BookingDataContext file
 import {
-  cancelAppointmentApi, // Import the cancelAppointmentApi module from the booking-api file
-  fetchAppointmentAvailability, // Import the fetchAppointmentAvailability module from the booking-api file
-  fetchPublicServiceTypes, // Import the fetchPublicServiceTypes module from the booking-api file
-  updateAppointment, // Import the updateAppointment module from the booking-api file
-  afterPhotoFilePart, // Import the afterPhotoFilePart module from the booking-api file
-  uploadAppointmentFinishedPhoto, // Import the uploadAppointmentFinishedPhoto module from the booking-api file
-} from '@/lib/booking-api';
-import type { Appointment, ServiceType } from '@/lib/booking-types'; // Import the Appointment and ServiceType types from the booking-types file
-import { STATUS_CANCELED } from '@/lib/booking-constants'; // Import the STATUS_CANCELED module from the booking-constants file
-import { isStaffRole } from '@/lib/roles'; // Import the isStaffRole module from the roles file
+  cancelAppointmentApi,
+  fetchAppointmentAvailability,
+  fetchPublicServiceTypes,
+  updateAppointment,
+  STATUS_CANCELED,
+  isStaffRole,
+  type Appointment,
+  type ServiceType,
+} from '@emmasenvy/shared';
+import { afterPhotoFilePart } from '@/lib/upload-form-data';
+import { uploadAppointmentFinishedPhoto } from '@/lib/upload-helpers';
 
 const BUSINESS_TZ = 'America/Denver'; // Import the BUSINESS_TZ module from the booking-constants file
 const DETAIL_MODAL_MAX_SCROLL = Math.round(Dimensions.get('window').height * 0.72); // Import the DETAIL_MODAL_MAX_SCROLL module from the booking-constants file
