@@ -6,6 +6,8 @@
   "scripts": {
     "start": "node index.js",
     "dev": "node --watch index.js",
+    "db:setup": "node scripts/db-setup.js",
+    "db:seed-demo": "node scripts/seed-demo.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],

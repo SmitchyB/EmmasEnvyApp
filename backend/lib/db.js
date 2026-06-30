@@ -228,80 +228,6 @@ async function updateSiteSettings(data) {
   }
 }
 
-const USER_NOTIFICATION_PREFS_TABLE = 'emmasenvy.user_notification_preferences';
-
-const NOTIFICATION_PREFS_DEFAULTS = {
-  notify_email: true,
-  notify_text: false,
-  notify_push: false,
-  login_alerts: true,
-  newsletter: true,
-  rewards_usage_earning: true,
-  reminders_apts: true,
-  promotions: true,
-  admin_new_appointment: true,
-  admin_new_order: true,
-  admin_ticket_new: true,
-  admin_ticket_message: true,
-  admin_rescheduled_apt: true,
-};
-
-async function getNotificationPreferences(userId) {
-  const result = await pool.query(
-    'SELECT * FROM ' + USER_NOTIFICATION_PREFS_TABLE + ' WHERE user_id = $1',
-    [userId]
-  );
-  const row = result.rows[0];
-  if (row) {
-    return {
-      notify_email: row.notify_email === true,
-      notify_text: row.notify_text === true,
-      notify_push: row.notify_push === true,
-      login_alerts: row.login_alerts !== false,
-      newsletter: row.newsletter === true,
-      rewards_usage_earning: row.rewards_usage_earning === true,
-      reminders_apts: row.reminders_apts === true,
-      promotions: row.promotions === true,
-      admin_new_appointment: row.admin_new_appointment === true,
-      admin_new_order: row.admin_new_order === true,
-      admin_ticket_new: row.admin_ticket_new === true,
-      admin_ticket_message: row.admin_ticket_message === true,
-      admin_rescheduled_apt: row.admin_rescheduled_apt === true,
-    };
-  }
-  return { ...NOTIFICATION_PREFS_DEFAULTS };
-}
-
-async function upsertNotificationPreferences(userId, data) {
-  const now = new Date();
-  const allowed = [
-    'notify_email',
-    'notify_text',
-    'notify_push',
-    'login_alerts',
-    'newsletter',
-    'rewards_usage_earning',
-    'reminders_apts',
-    'promotions',
-    'admin_new_appointment',
-    'admin_new_order',
-    'admin_ticket_new',
-    'admin_ticket_message',
-    'admin_rescheduled_apt',
-  ];
-  const merged = { ...NOTIFICATION_PREFS_DEFAULTS, ...data };
-  const cols = ['user_id', 'updated_at', ...allowed];
-  const vals = [userId, now, ...allowed.map((k) => !!merged[k])];
-  const placeholders = vals.map((_, i) => `$${i + 1}`).join(', ');
-  const conflictSet = ['updated_at', ...allowed].map((c) => `${c} = EXCLUDED.${c}`).join(', ');
-  await pool.query(
-    `INSERT INTO ${USER_NOTIFICATION_PREFS_TABLE} (${cols.join(', ')})
-     VALUES (${placeholders})
-     ON CONFLICT (user_id) DO UPDATE SET ${conflictSet}`,
-    vals
-  );
-}
-
 const USER_SESSIONS_TABLE = 'emmasenvy.user_sessions';
 
 function parseUserAgent(ua) {
@@ -434,8 +360,6 @@ module.exports = {
   ensureSiteSettingsRow,
   getSiteSettings,
   updateSiteSettings,
-  getNotificationPreferences,
-  upsertNotificationPreferences,
   parseUserAgent,
   getClientIp,
   createAuthSession,

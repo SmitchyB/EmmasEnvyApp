@@ -118,6 +118,25 @@ function isPaidAppointment(a: Appointment): boolean {
   return a.status === 'Paid'; // If the status is paid, return true
 }
 
+function formatAppointmentMoney(amount: number | null | undefined): string | null {
+  if (amount == null || Number.isNaN(Number(amount))) return null;
+  return `$${Number(amount).toFixed(2)}`;
+}
+
+/** Estimated cost before pay; paid total after checkout (from linked invoice). */
+function appointmentCostDisplay(a: Appointment): { line: string; hint?: string } | null {
+  if (isCanceled(a)) return null;
+  const money = formatAppointmentMoney(a.invoice_total_amount);
+  if (!money) return null;
+  if (isPaidAppointment(a)) {
+    return { line: `Paid ${money}` };
+  }
+  return {
+    line: `Est. ${money}`,
+    hint: 'Final total may change at checkout (tips, promos, or rewards).',
+  };
+}
+
 //Function to format the workflow timestamp
 function formatWorkflowTs(iso: string | null | undefined): string {
   if (!iso) return '—'; // If the ISO date is not null, return the ISO date
@@ -236,6 +255,7 @@ export default function AppointmentsTabScreen() {
   const [staffInspoGalleryOpen, setStaffInspoGalleryOpen] = useState(false); // Set the staff inspiration gallery open state to false
   const [staffAfterGalleryOpen, setStaffAfterGalleryOpen] = useState(false); // Set the staff after gallery open state to false
   const payStatus = detail?.invoice_payment_status ?? '—'; // Get the payment status
+  const detailCost = detail ? appointmentCostDisplay(detail) : null;
   // Get the service title
   const serviceTitle =
     // If the service type title is not null and the service type title is not an empty string, return the service type title
@@ -444,6 +464,7 @@ export default function AppointmentsTabScreen() {
         ) : (
           list.map((a) => {
             const payLabel = a.invoice_payment_status ?? '—';
+            const costDisplay = appointmentCostDisplay(a);
             const rowService =
               (a.service_type_title && String(a.service_type_title).trim()) ||
               (a.service_type_id ? serviceTypes.find((s) => s.id === a.service_type_id)?.title : null) ||
@@ -461,7 +482,14 @@ export default function AppointmentsTabScreen() {
                       {' · '}
                       {a.status}
                     </Text>
-                    {isStaff ? <Text style={styles.rowMeta}>Payment: {payLabel}</Text> : null}
+                    {isStaff ? (
+                      <Text style={styles.rowMeta}>
+                        Payment: {payLabel}
+                        {costDisplay ? ` · ${costDisplay.line}` : ''}
+                      </Text>
+                    ) : costDisplay ? (
+                      <Text style={styles.rowMeta}>{costDisplay.line}</Text>
+                    ) : null}
                   </View>
                   <Text style={styles.chev}>›</Text>
                 </Pressable>
@@ -493,6 +521,12 @@ export default function AppointmentsTabScreen() {
                 </Text>
                 <Text style={styles.detailLine}>Service: {serviceTitle}</Text>
                 <Text style={styles.detailLine}>Status: {detail.status}</Text>
+                {detailCost ? (
+                  <>
+                    <Text style={styles.detailLine}>{detailCost.line}</Text>
+                    {detailCost.hint ? <Text style={styles.detailMeta}>{detailCost.hint}</Text> : null}
+                  </>
+                ) : null}
                 {user ? (
                   <Pressable style={styles.action} onPress={() => openSupportForAppointment(detail)}>
                     <Text style={styles.actionText}>Help with this appointment</Text>
