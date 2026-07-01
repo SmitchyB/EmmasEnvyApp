@@ -32,7 +32,39 @@ fs.mkdirSync(SUPPORT_UPLOAD_DIR, { recursive: true }); // Create the support upl
 const app = express(); // Create the express application
 const PORT = process.env.PORT || 5000; // Define the port
 const CLIENT_URL = process.env.CLIENT_URL || 'http://localhost:4321'; // Define the client URL
-app.use(cors({ origin: CLIENT_URL, credentials: true }));
+const allowedOrigins = CLIENT_URL.split(',')
+  .map((o) => o.trim().replace(/\/$/, ''))
+  .filter(Boolean);
+
+function isAllowedOrigin(origin) {
+  if (!origin) return true; // same-origin / server-side / curl
+  const normalized = origin.replace(/\/$/, '');
+  if (allowedOrigins.includes(normalized)) return true;
+  // Local dev: allow known client dev ports on any host (localhost, LAN IP, etc.)
+  if (process.env.NODE_ENV !== 'production') {
+    try {
+      const { hostname, port } = new URL(normalized);
+      if (hostname === 'localhost' || hostname === '127.0.0.1') return true;
+      const devPorts = new Set(['3000', '8081', '4321', '19006']);
+      if (devPorts.has(port)) return true;
+    } catch {
+      // ignore malformed origin
+    }
+  }
+  return false;
+}
+
+app.use(cors({
+  origin(origin, callback) {
+    if (isAllowedOrigin(origin)) {
+      callback(null, true);
+    } else {
+      console.warn('[CORS] Blocked origin:', origin, '| allowed:', allowedOrigins.join(', '));
+      callback(null, false);
+    }
+  },
+  credentials: true,
+}));
 app.use(express.json());
 
 app.use('/api', (req, res, next) => {

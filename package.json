@@ -3,8 +3,12 @@
   "private": true,
   "workspaces": [
     "frontend",
-    "packages/*"
+    "packages/*",
+    "website"
   ],
+  "scripts": {
+    "dev:website": "npm run dev -w website"
+  },
   "overrides": {
     "react": "19.1.0",
     "react-dom": "19.1.0"

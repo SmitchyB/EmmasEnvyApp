@@ -1,0 +1,116 @@
+@import "tailwindcss";
+
+:root {
+  --pink: #e91e8c;
+  --pink-light: #f8b4d9;
+  --pink-dark: #8b1555;
+  --pink-darkest: #1f0614;
+  --shadow-card: 0 4px 24px rgba(0, 0, 0, 0.18);
+  --shadow-modal: 0 8px 40px rgba(0, 0, 0, 0.35);
+  --shadow-nav: 0 2px 12px rgba(0, 0, 0, 0.15);
+}
+
+@theme inline {
+  --color-pink: var(--pink);
+  --color-pink-light: var(--pink-light);
+  --color-pink-dark: var(--pink-dark);
+  --color-pink-darkest: var(--pink-darkest);
+  --font-sans: var(--font-geist-sans);
+}
+
+body {
+  min-height: 100vh;
+  color: #ffffff;
+  font-family: var(--font-geist-sans), system-ui, sans-serif;
+}
+
+.gradient-bg {
+  background: linear-gradient(
+    180deg,
+    var(--pink-darkest) 0%,
+    var(--pink-dark) 35%,
+    var(--pink) 70%,
+    var(--pink-light) 100%
+  );
+}
+
+.shadow-card {
+  box-shadow: var(--shadow-card);
+}
+
+.shadow-modal {
+  box-shadow: var(--shadow-modal);
+}
+
+.shadow-nav {
+  box-shadow: var(--shadow-nav);
+}
+
+.btn-shimmer {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+}
+
+.btn-shimmer::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 18% 22%, rgba(248, 180, 217, 0.35) 0%, transparent 42%),
+    radial-gradient(circle at 82% 78%, rgba(255, 255, 255, 0.2) 0%, transparent 38%),
+    radial-gradient(circle at 55% 45%, rgba(233, 30, 140, 0.15) 0%, transparent 50%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.btn-shimmer::after {
+  content: "";
+  position: absolute;
+  inset: -20%;
+  background: linear-gradient(
+    105deg,
+    transparent 35%,
+    rgba(248, 180, 217, 0.55) 45%,
+    rgba(255, 255, 255, 0.65) 50%,
+    rgba(248, 180, 217, 0.55) 55%,
+    transparent 65%
+  );
+  transform: translateX(-130%);
+  transition: none;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.btn-shimmer:hover::after {
+  animation: shimmer-sweep 0.75s ease-out;
+}
+
+.btn-shimmer > * {
+  position: relative;
+  z-index: 2;
+}
+
+@keyframes shimmer-sweep {
+  from {
+    transform: translateX(-130%);
+  }
+  to {
+    transform: translateX(130%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .btn-shimmer::after {
+    display: none;
+  }
+}
+
+.prose-policy {
+  white-space: pre-wrap;
+  line-height: 1.65;
+}
+
+.prose-policy p {
+  margin-bottom: 1rem;
+}
