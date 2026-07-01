@@ -8,6 +8,7 @@ import {
   listAvailableRewardOfferings,
   listRewardOfferingsAdmin,
   patchRewardOfferingApi,
+  formatRewardOfferingValue,
   type RewardOfferingDto,
   type RewardTypeApi,
 } from "@emmasenvy/shared";
@@ -18,13 +19,6 @@ import { Input, Label } from "@/components/ui/Input";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { Modal } from "@/components/ui/Modal";
 import { PageHeader } from "@/components/ui/PageHeader";
-
-function formatOfferingValue(o: RewardOfferingDto): string {
-  if (o.reward_type === "percent_off" && o.value != null) return `${o.value}% off`;
-  if (o.reward_type === "dollar_off" && o.value != null) return `$${o.value} off`;
-  if (o.reward_type === "free_service") return "Free service";
-  return "—";
-}
 
 export function RewardsView({ adminMode = false }: { adminMode?: boolean }) {
   const { user, token } = useAuth();
@@ -126,7 +120,7 @@ export function RewardsView({ adminMode = false }: { adminMode?: boolean }) {
         {catalog.map((o) => (
           <Card key={o.id}>
             <p className="font-semibold">{o.title}</p>
-            <p className="text-sm text-white/75">{formatOfferingValue(o)} · {o.point_cost} pts</p>
+            <p className="text-sm text-white/75">{formatRewardOfferingValue(o)} · {o.point_cost} pts</p>
             {adminMode ? (
               <div className="mt-3 flex gap-3">
                 <Button variant="secondary" className="text-xs" onClick={() => openEdit(o)}>Edit</Button>

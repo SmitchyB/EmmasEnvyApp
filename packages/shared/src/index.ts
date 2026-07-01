@@ -37,6 +37,13 @@ export {
   minutesToTime,
 } from './utils/booking-duration';
 export { computeAvailableSlots, isSlotStillAvailable } from './utils/appointment-availability';
+export {
+  BUSINESS_TZ,
+  normalizeAppointmentYmd,
+  isAppointmentPastStart,
+  findNextUpcomingAppointment,
+} from './utils/appointments';
+export { formatRewardOfferingValue, findNearestAffordableOffering } from './utils/rewards';
 export { serviceLabel } from './utils/labels';
 
 // Signup draft

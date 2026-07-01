@@ -1,47 +1,85 @@
-import { useFocusEffect } from '@react-navigation/native'; // Import the useFocusEffect hook from @react-navigation/native
-import { Image } from 'expo-image'; // Import the Image component from expo-image
-import { useRouter } from 'expo-router'; // Import the useRouter hook from expo-router
-import { useCallback, useState } from 'react'; // Import the useState hook from react
+import { useFocusEffect } from '@react-navigation/native';
+import { useRouter } from 'expo-router';
+import { useCallback, useState } from 'react';
 import {
-  ActivityIndicator, 
+  ActivityIndicator,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
   View,
-} from 'react-native'; // Import the ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, and View components from react-native
-import { useSafeAreaInsets } from 'react-native-safe-area-context'; // Import the useSafeAreaInsets hook from react-native-safe-area-context
-import { getSiteSettings, type SiteSettings } from '@emmasenvy/shared'; // Import the getSiteSettings function and the SiteSettings type from @/lib/api
-import { uploadsUrl } from '@/constants/config'; // Import the uploadsUrl function from @/constants/config
-import { GradientColors, NavbarColors } from '@/constants/theme'; // Theme colors for CTA
+} from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import {
+  fetchPublicServiceTypes,
+  getPrimaryPortfolio,
+  getSiteSettings,
+  listAvailableRewardOfferings,
+  type Portfolio,
+  type PortfolioPhoto,
+  type RewardOfferingDto,
+  type ServiceType,
+  type SiteSettings,
+} from '@emmasenvy/shared';
+import { HomeHero } from '@/components/home/HomeHero';
+import { HomeNextAppointment } from '@/components/home/HomeNextAppointment';
+import { HomePortfolioPreview } from '@/components/home/HomePortfolioPreview';
+import { HomeQuickActions } from '@/components/home/HomeQuickActions';
+import { HomeRewardsCard } from '@/components/home/HomeRewardsCard';
+import { uploadsUrl as configUploadsUrl } from '@/constants/config';
+import { GradientColors, NavbarColors } from '@/constants/theme';
+import { useAuth } from '@/contexts/AuthContext';
+import { useBookingData } from '@/contexts/BookingDataContext';
 
-const HERO_HEIGHT = 220; // Define the height of the hero image
 const BOOK_CTA_LABEL = 'Book an appointment';
-const DEFAULT_TITLE = 'Emmas Envy'; // Define the default title of the home screen
+const DEFAULT_TITLE = 'Emmas Envy';
+
+type PortfolioWithPhotos = Portfolio & { photos: PortfolioPhoto[] };
 
 export default function HomeScreen() {
-  const router = useRouter(); // Router for book-appointment
-  const insets = useSafeAreaInsets(); // Get the insets of the safe area
-  const [settings, setSettings] = useState<SiteSettings | null>(null); // Set the settings to null
-  const [loading, setLoading] = useState(true); // Set the loading to true
-  // Define the load function to get the site settings from the backend
+  const router = useRouter();
+  const insets = useSafeAreaInsets();
+  const { user } = useAuth();
+  const { refreshAppointments } = useBookingData();
+
+  const [settings, setSettings] = useState<SiteSettings | null>(null);
+  const [portfolio, setPortfolio] = useState<PortfolioWithPhotos | null>(null);
+  const [serviceTypes, setServiceTypes] = useState<ServiceType[]>([]);
+  const [rewardOfferings, setRewardOfferings] = useState<RewardOfferingDto[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
+
   const load = useCallback(async () => {
     setLoading(true);
+    setError(false);
     try {
-      const data = await getSiteSettings();
-      setSettings(data);
+      const [settingsData, portfolioResult, services, offerings] = await Promise.all([
+        getSiteSettings(),
+        getPrimaryPortfolio(),
+        fetchPublicServiceTypes(),
+        listAvailableRewardOfferings(),
+      ]);
+      setSettings(settingsData);
+      setPortfolio(portfolioResult?.portfolio ?? null);
+      setServiceTypes(services);
+      setRewardOfferings(offerings);
+    } catch {
+      setError(true);
     } finally {
       setLoading(false);
     }
   }, []);
-  // Define the useFocusEffect hook to load the site settings when the screen is focused
+
   useFocusEffect(
     useCallback(() => {
-      load();
-    }, [load])
+      void load();
+      if (user) {
+        void refreshAppointments();
+      }
+    }, [load, user, refreshAppointments])
   );
-  // Define the loading state to show a loading indicator when the site settings are loading
-  if (loading) {
+
+  if (loading && !settings) {
     return (
       <View style={[styles.centered, { paddingTop: insets.top + 60 }]}>
         <Text style={styles.loadingTitle}>Emmas Envy</Text>
@@ -50,11 +88,11 @@ export default function HomeScreen() {
       </View>
     );
   }
-  
-  const heroUri = settings ? uploadsUrl(settings.home_hero_image) : null; // Define the hero URI
-  const title = settings?.hero_title?.trim() || DEFAULT_TITLE; // Define the title
-  
-  // Return the home screen with the hero image, title, and material and a default message if the settings from the backend are not loaded
+
+  const heroUri = settings ? configUploadsUrl(settings.home_hero_image) : null;
+  const title = settings?.hero_title?.trim() || DEFAULT_TITLE;
+  const rewardsEnabled = settings?.rewards_enabled ?? false;
+
   return (
     <ScrollView
       style={styles.scroll}
@@ -64,28 +102,9 @@ export default function HomeScreen() {
       ]}
       showsVerticalScrollIndicator={false}
     >
-      {/* Hero image and title*/}
-      <View style={styles.heroWrap}>
-        {heroUri ? (
-          <Image
-            source={{ uri: heroUri }}
-            style={styles.heroImage}
-            contentFit="cover"
-          />
-        ) : (
-          <View style={styles.heroPlaceholder} />
-        )}
-        <View style={styles.heroOverlay} />
-        <Text style={styles.heroTitle}>{title}</Text>
-      </View>
-      {/* Hero material */}
-      {settings?.home_hero_material?.trim() ? (
-        <View style={styles.section}>
-          <Text style={styles.bodyText}>{settings.home_hero_material}</Text>
-        </View>
-      ) : null}
-      {/* Fallback when no settings */}
-      {!settings && !loading && (
+      <HomeHero heroUri={heroUri} title={title} />
+
+      {error && !settings ? (
         <View style={styles.section}>
           <Text style={styles.errorTitle}>Could not load content</Text>
           <Text style={styles.bodyText}>
@@ -100,12 +119,22 @@ export default function HomeScreen() {
             <Text style={styles.retryButtonText}>Try again</Text>
           </Pressable>
         </View>
-      )}
+      ) : null}
+
+      <HomeNextAppointment serviceTypes={serviceTypes} />
+
+      <HomeQuickActions rewardsEnabled={rewardsEnabled} />
+
+      {portfolio ? <HomePortfolioPreview portfolio={portfolio} /> : null}
+
+      <HomeRewardsCard rewardsEnabled={rewardsEnabled} offerings={rewardOfferings} />
+
       <Pressable
         onPress={() => router.push('/book-appointment')}
         style={({ pressed }) => [styles.bookCta, pressed && styles.bookCtaPressed]}
         accessibilityRole="button"
-        accessibilityLabel={BOOK_CTA_LABEL}>
+        accessibilityLabel={BOOK_CTA_LABEL}
+      >
         <Text style={styles.bookCtaText}>{BOOK_CTA_LABEL}</Text>
       </Pressable>
     </ScrollView>
@@ -137,31 +166,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: NavbarColors.textMuted,
   },
-  heroWrap: {
-    height: HERO_HEIGHT,
-    borderRadius: 12,
-    overflow: 'hidden',
-    marginBottom: 20,
-    justifyContent: 'flex-end',
-  },
-  heroImage: {
-    ...StyleSheet.absoluteFillObject,
-  },
-  heroPlaceholder: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.3)',
-  },
-  heroOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.35)',
-  },
-  heroTitle: {
-    fontSize: 28,
-    fontWeight: '700',
-    color: '#fff',
-    paddingHorizontal: 16,
-    paddingBottom: 16,
-  },
   section: {
     marginBottom: 20,
   },
@@ -170,6 +174,11 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: NavbarColors.text,
     marginBottom: 8,
+  },
+  bodyText: {
+    fontSize: 15,
+    lineHeight: 22,
+    color: NavbarColors.textMuted,
   },
   retryButton: {
     alignSelf: 'flex-start',
@@ -187,11 +196,6 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '600',
     color: NavbarColors.text,
-  },
-  bodyText: {
-    fontSize: 15,
-    lineHeight: 22,
-    color: NavbarColors.textMuted,
   },
   bookCta: {
     marginTop: 8,
