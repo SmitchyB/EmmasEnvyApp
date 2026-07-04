@@ -2,19 +2,7 @@
 
 ## Overview
 
-```mermaid
-flowchart LR
-  Web[Website :3000]
-  Mobile[Mobile Expo]
-  Shared["@emmasenvy/shared"]
-  API[Backend :5000]
-  DB[(PostgreSQL)]
-
-  Web --> Shared
-  Mobile --> Shared
-  Shared --> API
-  API --> DB
-```
+**Website** (:3000) and **Mobile** (Expo) both use **`@emmasenvy/shared`**, which calls the **Backend** API (:5000). The API reads and writes **PostgreSQL** (`emmasenvy` schema).
 
 - **Website** — Next.js customer site + `/staff/*` admin
 - **Mobile** — Expo app; includes POS checkout (not on web)
