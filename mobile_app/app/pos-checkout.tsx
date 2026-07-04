@@ -346,7 +346,7 @@ export default function PosCheckoutScreen() {
     if (!preview || !appointment || !token) return; //If the preview or appointment or token is not set, then return
     //If the SQUARE_APPLICATION_ID or SQUARE_LOCATION_ID is not set, then set the payError to 'Add EXPO_PUBLIC_SQUARE_APPLICATION_ID and EXPO_PUBLIC_SQUARE_LOCATION_ID to frontend/.env, then restart Expo.' and return
     if (!SQUARE_APPLICATION_ID.trim() || !SQUARE_LOCATION_ID.trim()) {
-      setPayError('Add EXPO_PUBLIC_SQUARE_APPLICATION_ID and EXPO_PUBLIC_SQUARE_LOCATION_ID to frontend/.env, then restart Expo.');
+      setPayError('Add EXPO_PUBLIC_SQUARE_APPLICATION_ID and EXPO_PUBLIC_SQUARE_LOCATION_ID to mobile_app/.env, then restart Expo.');
       return;
     }
     setPayError(null); //Set the payError to null

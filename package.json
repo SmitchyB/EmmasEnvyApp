@@ -2,7 +2,7 @@
   "name": "emmas-envy",
   "private": true,
   "workspaces": [
-    "frontend",
+    "mobile_app",
     "packages/*",
     "website"
   ],

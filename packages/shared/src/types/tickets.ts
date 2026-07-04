@@ -17,8 +17,6 @@ export interface SupportTicket {
   id: number;
   public_reference: string;
   user_id: number | null;
-  guest_email: string | null;
-  guest_phone: string | null;
   subject: string | null;
   issue_type: string;
   handler_team: SupportHandlerTeam;
@@ -35,19 +33,10 @@ export interface SupportTicket {
 
 export interface SupportMessage {
   id: string;
-  author_kind: 'guest' | 'user' | 'staff' | 'system';
+  author_kind: 'user' | 'staff' | 'system';
   author_user_id: number | null;
   body: string;
   is_internal: boolean;
   created_at: string;
   attachments: { id: number; url: string; mime_type: string | null; created_at: string }[];
-}
-
-export interface GuestInvoiceOption {
-  invoice_db_id: number;
-  invoice_label: string;
-  created_at: string;
-  total_amount: number | null;
-  appointment_id: number | null;
-  payment_status: string | null;
 }

@@ -52,8 +52,9 @@ Copy `backend/.env.example` to `backend/.env` and set at minimum:
 
 Optional integrations:
 
-- **Square** — card payments in POS (`SQUARE_ACCESS_TOKEN`, `SQUARE_ENVIRONMENT`, `SQUARE_LOCATION_ID`)
-- **Brevo SMTP** — OTP / password-reset email (`BREVO_SMTP_*`)
+- **Square** — card payments in mobile POS (`SQUARE_ACCESS_TOKEN`, `SQUARE_ENVIRONMENT`, `SQUARE_LOCATION_ID`)
+
+Password-reset OTP codes are not sent by email in this project. In local development, codes are logged to the backend terminal.
 
 Start the API:
 
@@ -63,7 +64,7 @@ npm install
 npm run dev
 ```
 
-Default port is **5000**. Set `EXPO_PUBLIC_API_URL` in the frontend to match (e.g. `http://YOUR_LAN_IP:5000` on a physical device).
+Default port is **5000**. Set `EXPO_PUBLIC_API_URL` in `mobile_app/.env` to match (e.g. `http://YOUR_LAN_IP:5000` on a physical device). See [root README](../README.md) and [mobile_app/README.md](../mobile_app/README.md).
 
 ## 4. Create your first admin user
 
@@ -120,7 +121,16 @@ npm run db:seed-demo
 
 **Warning:** This **truncates all rows** in every `emmasenvy` table (users, appointments, tickets, everything), then inserts fresh demo data. Tables and columns are not dropped. Safe to re-run anytime you want to reset after testing — just run `npm run db:seed-demo` again.
 
-Requires the [`DemoAssets/`](../DemoAssets/) folder in the repo. Copies images into `backend/uploads/`.
+Requires the [`DemoAssets/`](../DemoAssets/) folder in the repo. See [DemoAssets/README.md](../DemoAssets/README.md). The seed uses **every image file** in `DemoAssets/Nails/` (currently ~20 nail photos). Copies images into `backend/uploads/` (gitignored).
+
+Verify seed:
+
+```sql
+SELECT count(*) FROM emmasenvy.portfolio_photos;
+SELECT email, role FROM emmasenvy.users ORDER BY id;
+```
+
+Or log in as `emma@fake.com` / `Demo1234!`.
 
 | Email | Phone | Role | Password |
 |-------|-------|------|----------|

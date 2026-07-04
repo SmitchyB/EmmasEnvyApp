@@ -1,6 +1,6 @@
-//main support hub that splits the view between auth loading spinner, Not Sign In Guest Entry, Signed In User Entry for both Staff and Non-Staff
+//main support hub for signed-in customers and staff
 
-import { useRouter } from 'expo-router'; // Import the useRouter hook from expo-router for the navigation
+import { useRouter } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native'; // Import the useFocusEffect hook from @react-navigation/native for the focus effect
 import React, { useCallback, useMemo, useState } from 'react'; // Import the React, useCallback, useMemo, and useState hooks from react
 import {
@@ -76,19 +76,16 @@ export default function SupportIndexScreen() {
     );
   }
 
-  // If the user is not found, return a view with a title, a muted text, a button to claim a ticket, a button to start a new ticket, and a button to go back
+  // If the user is not found, prompt sign-in
   if (!user) {
     return (
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={[styles.content, { paddingTop: insets.top + 24, paddingBottom: insets.bottom + 24 }]}>
         <Text style={styles.title}>Support</Text>
-        <Text style={styles.muted}>Get help without signing in, or open a ticket you already started.</Text>
-        <Pressable style={styles.btn} onPress={() => router.push('/support/guest-claim')}>
-          <Text style={styles.btnText}>I have a ticket number</Text>
-        </Pressable>
-        <Pressable style={styles.btn} onPress={() => router.push('/support/guest-new')}>
-          <Text style={styles.btnText}>Start a new ticket</Text>
+        <Text style={styles.muted}>Sign in to view your tickets or open a new support request.</Text>
+        <Pressable style={styles.btn} onPress={() => router.push('/login')}>
+          <Text style={styles.btnText}>Sign in</Text>
         </Pressable>
         <Pressable style={styles.link} onPress={() => router.back()}>
           <Text style={styles.linkText}>Back</Text>

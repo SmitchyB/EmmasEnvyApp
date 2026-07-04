@@ -4,7 +4,7 @@ export type { SharedConfig } from './config';
 
 // Constants
 export { STATUS_CANCELED, DEFAULT_DAY_START, DEFAULT_DAY_END, SLOT_STEP_MINUTES } from './constants/booking';
-export { AUTH_TOKEN_KEY, DEVICE_ID_KEY, GUEST_TICKET_KEY } from './constants/storage-keys';
+export { AUTH_TOKEN_KEY, DEVICE_ID_KEY } from './constants/storage-keys';
 
 // Types
 export type { User, AuthSession, Requires2FAResponse, AuthSessionItem } from './types/auth';
@@ -20,7 +20,6 @@ export type {
   IssueTypeOption,
   SupportTicket,
   SupportMessage,
-  GuestInvoiceOption,
 } from './types/tickets';
 export type { Portfolio, PortfolioPhoto } from './types/portfolio';
 export type { RewardTypeApi, RewardOfferingDto, MeRewardsResponse } from './types/rewards';
@@ -99,13 +98,6 @@ export {
   closeTicketAsCustomer,
   patchTicketStaff,
   postTicketMessage,
-  guestCreateTicket,
-  guestClaimTicket,
-  guestGetThread,
-  guestPostMessage,
-  guestCloseTicket,
-  guestFindRecords,
-  guestVerifyAppointment,
 } from './api/tickets';
 
 // Portfolio API

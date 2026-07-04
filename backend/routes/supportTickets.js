@@ -5,9 +5,6 @@ const express = require('express'); // express module to create the router
 const db = require('../lib/db'); // database connection
 const { requireAuth, requireAdminOrIT } = require('../middleware/auth'); // auth middleware to require authentication and admin or IT role
 const { supportPhotoUpload } = require('../lib/upload'); // upload middleware to upload photos
-const { signGuestTicketToken } = require('../lib/jwt'); // jwt module to sign guest ticket tokens
-const { rateLimitGuestSupport } = require('../middleware/supportRateLimit'); // rate limit middleware to limit the number of requests to the guest support endpoints
-const { requireGuestTicketAuth } = require('../middleware/guestTicketAuth'); // guest ticket auth middleware to require a guest ticket auth token to access a support ticket for guest customers
 const {
   getHandlerTeamForIssue, // function to get the handler team for an issue type
   isValidIssueType, // function to check if an issue type is valid
@@ -31,19 +28,6 @@ const APPT = 'emmasenvy.appointments'; // table name for appointments
 const INV = 'emmasenvy.invoices'; // table name for invoices
 
 const uploadArray = supportPhotoUpload.array('attachments', 5); // upload array to upload 5 photos
-
-//function to normalize an email
-function normalizeEmail(s) {
-  if (s == null || String(s).trim() === '') return null; // if the email is null or empty, return null
-  return String(s).trim().toLowerCase(); // return the email trimmed and lowercased
-}
-
-//function to normalize a phone number
-function normalizePhone(s) {
-  if (s == null) return null; // if the phone number is null, return null
-  const d = String(s).replace(/\D/g, ''); // replace all non-digits with an empty string
-  return d.length > 0 ? d : null; // return the phone number if it is not empty, otherwise return null
-}
 
 //function to check if a user is a staff user
 function isStaffUser(user) {
@@ -71,15 +55,6 @@ async function ensureUniquePublicReference(client) {
     if (r.rowCount === 0) return ref; // if the public reference is unique, return it
   }
   throw new Error('Could not allocate ticket reference'); // if the public reference is not unique, throw an error
-}
-
-//function to check if a contact matches a ticket
-function contactMatchesTicket(ticket, emailIn, phoneIn) {
-  const e = normalizeEmail(emailIn); // normalize the email
-  const p = normalizePhone(phoneIn); // normalize the phone number
-  if (e && ticket.guest_email && normalizeEmail(ticket.guest_email) === e) return true; // if the email matches the ticket, return true
-  if (p && ticket.guest_phone && normalizePhone(ticket.guest_phone) === p) return true; // if the phone number matches the ticket, return true
-  return false; // if the email or phone number does not match the ticket, return false
 }
 
 //function to assert an appointment for a user
@@ -212,8 +187,6 @@ function mapTicketRow(row) {
     id: row.id, // insert the id
     public_reference: row.public_reference, // insert the public reference
     user_id: row.user_id, // insert the user id
-    guest_email: row.guest_email, // insert the guest email
-    guest_phone: row.guest_phone, // insert the guest phone
     subject: row.subject, // insert the subject
     issue_type: row.issue_type, // insert the issue type
     handler_team: row.handler_team, // insert the handler team
@@ -233,336 +206,6 @@ function mapTicketRow(row) {
 //Route to get the issue types
 router.get('/issue-types', (req, res) => {
   res.json({ issue_types: listIssueTypesForApi() }); // return the issue types
-});
-
-// --- Guest ---
-//Route to create a guest support ticket
-router.post('/guest', rateLimitGuestSupport, uploadArray, async (req, res, next) => {
-  const guest_email = normalizeEmail(req.body.guest_email); // normalize the guest email
-  const guest_phone = normalizePhone(req.body.guest_phone); // normalize the guest phone
-  const issue_type = req.body.issue_type; // get the issue type
-  const subject = (req.body.subject && String(req.body.subject).trim()) || null; // get the subject
-  const body = req.body.body != null ? String(req.body.body).trim() : ''; // get the body
-  // get the linked appointment id
-  const linked_appointment_id =
-    req.body.linked_appointment_id != null && req.body.linked_appointment_id !== ''
-      ? parseInt(req.body.linked_appointment_id, 10)
-      : null;
-  // get the linked invoice id
-  const linked_invoice_id =
-    req.body.linked_invoice_id != null && req.body.linked_invoice_id !== ''
-      ? parseInt(req.body.linked_invoice_id, 10)
-      : null;
-
-  // if the guest email or guest phone is not found, return an error
-  if (!guest_email && !guest_phone) {
-    return res.status(400).json({ error: 'guest_email or guest_phone required' }); // return an error
-  } 
-  // if the issue type is not valid, return an error
-  if (!isValidIssueType(issue_type)) {
-    return res.status(400).json({ error: 'Invalid issue_type' }); // return an error
-  }
-  // if the body is not found, return an error
-  if (!body) {
-    return res.status(400).json({ error: 'body required' }); // return an error
-  }
-
-  const handler_team = getHandlerTeamForIssue(issue_type); // get the handler team for the issue type
-  const client = await db.pool.connect(); // connect to the pool
-  // try to create the ticket
-  try {
-    await client.query('BEGIN'); // begin a transaction
-    const public_reference = await ensureUniquePublicReference(client); // ensure a unique public reference
-    const ins = await client.query(
-      `INSERT INTO ${T} (
-        public_reference, user_id, guest_email, guest_phone, subject, issue_type, handler_team,
-        linked_appointment_id, linked_invoice_id, status, last_message_at, updated_at
-      ) VALUES ($1, NULL, $2, $3, $4, $5, $6, $7, $8, 'pending_staff', NOW(), NOW())
-      RETURNING *`,
-      [
-        public_reference, // insert the public reference
-        guest_email, // insert the guest email
-        guest_phone, // insert the guest phone
-        subject, // insert the subject
-        issue_type, // insert the issue type
-        handler_team, // insert the handler team
-        Number.isNaN(linked_appointment_id) ? null : linked_appointment_id, // insert the linked appointment id
-        Number.isNaN(linked_invoice_id) ? null : linked_invoice_id, // insert the linked invoice id
-      ]
-    );
-    const ticket = ins.rows[0]; // get the ticket from the result
-    // insert the message into the database
-    const msgIns = await client.query(
-      `INSERT INTO ${M} (ticket_id, author_kind, author_user_id, body, is_internal)
-       VALUES ($1, 'guest', NULL, $2, false) RETURNING id`,
-      [ticket.id, body]
-    );
-    const messageId = msgIns.rows[0].id; // get the message id from the result
-    await insertAttachments(client, messageId, req.files); // insert the attachments into the database
-    await client.query('COMMIT'); // commit the transaction
-
-    // create a linking note
-    const linkingNote =
-      'If you sign up for the app using, or link, this same contact info, this support ticket will be linked automatically and you can manage it in the app.'; // create a linking note
-    // if the guest phone is not found, log the exact payload we intend to send
-    if (guest_phone) {
-      console.log('[support-sms:stub]', { // log the exact payload we intend to send
-        to: guest_phone, // insert the guest phone
-        public_reference, // insert the public reference
-        message: `Emma's Envy support: your ticket is ${public_reference}. ${linkingNote}`, // insert the message
-      });
-    }
-    // if the guest email is not found, log the exact payload we intend to send
-    if (guest_email) {
-      console.log('[support-email:stub]', {
-        to: guest_email,
-        subject: `Your Emma's Envy support ticket: ${public_reference}`,
-        message: `Your support ticket number is ${public_reference}. ${linkingNote}`,
-      });
-    }
-
-    const sentVia = []; // create an array for the sent via
-    if (guest_phone) sentVia.push('SMS'); // if the guest phone is not found, add SMS to the array
-    if (guest_email) sentVia.push('email'); // if the guest email is not found, add email to the array
-    // return the ticket and message
-    res.status(201).json({
-      ticket: mapTicketRow(ticket),
-      message:
-        sentVia.length > 0
-          ? `Ticket created. We sent your ticket number by ${sentVia.join(' and ')}. ${linkingNote}`
-          : `Ticket created. Save your ticket number for your records. ${linkingNote}`,
-    });
-  } catch (err) {
-    await safeRollback(client); // rollback the transaction
-    next(err);
-  } finally {
-    client.release(); // release the client
-  }
-});
-
-//Route to claim a guest support ticket
-router.post('/guest/claim', rateLimitGuestSupport, async (req, res, next) => {
-  // try to claim the ticket
-  try {
-    const public_reference = req.body.public_reference != null ? String(req.body.public_reference).trim() : '';// get the public reference
-    const email = normalizeEmail(req.body.email); // normalize the email
-    const phone = normalizePhone(req.body.phone); // normalize the phone
-    // if the public reference is not found, return an error
-    if (!public_reference) {
-      return res.status(400).json({ error: 'public_reference required' }); // return an error
-    }
-    // if the email or phone is not found, return an error
-    if (!email && !phone) {
-      return res.status(400).json({ error: 'email or phone required for verification' }); // return an error
-    }
-    const r = await db.pool.query(`SELECT * FROM ${T} WHERE public_reference = $1`, [public_reference]); // check if the ticket exists
-    const ticket = r.rows[0]; // get the ticket from the result
-    // if the ticket does not exist or the contact does not match, return an error
-    if (!ticket || !contactMatchesTicket(ticket, email, phone)) {
-      // return an error
-      return res.status(400).json({
-        error: 'If that ticket exists and the contact matches, you will be signed in. Check your details and try again.', // return an error
-      });
-    }
-    const token = signGuestTicketToken(ticket.id); // sign the guest ticket token
-    res.json({ guest_ticket_token: token, ticket: mapTicketRow(ticket) }); // return the guest ticket token and ticket
-  } catch (err) {
-    next(err); // next the error
-  }
-});
-
-//Route to get the thread for a guest support ticket
-router.get('/guest/thread', requireGuestTicketAuth, async (req, res, next) => {
-  // try to get the thread for the ticket
-  try {
-    await tryAutoCloseTicketById(db.pool, req.guestTicketId); // try to auto close the ticket
-    const r = await db.pool.query(`SELECT * FROM ${T} WHERE id = $1`, [req.guestTicketId]); // check if the ticket exists
-    const ticket = r.rows[0]; // get the ticket from the result
-    // if the ticket does not exist, return an error
-    if (!ticket) {
-      return res.status(404).json({ error: 'Ticket not found' }); // return an error
-    }
-    const messages = await loadMessagesForTicket(db.pool, ticket.id, false); // load the messages for the ticket
-    res.json({ ticket: mapTicketRow(ticket), messages }); // return the ticket and messages
-  } catch (err) {
-    next(err); // next the error
-  }
-});
-
-//Route to close a guest support ticket
-router.post('/guest/close', requireGuestTicketAuth, rateLimitGuestSupport, async (req, res, next) => {
-  const client = await db.pool.connect(); // connect to the pool
-  // try to close the ticket
-  try {
-    await client.query('BEGIN'); // begin a transaction
-    const r = await client.query(`SELECT * FROM ${T} WHERE id = $1 FOR UPDATE`, [req.guestTicketId]); // check if the ticket exists
-    const ticket = r.rows[0]; // get the ticket from the result
-    // if the ticket does not exist, return an error
-    if (!ticket) {
-      await client.query('ROLLBACK'); // rollback the transaction
-      return res.status(404).json({ error: 'Ticket not found' }); // return an error
-    }
-    // if the ticket is already closed, return the ticket and messages
-    if (ticket.status === 'closed') {
-      await client.query('COMMIT'); // commit the transaction
-      const messages = await loadMessagesForTicket(db.pool, ticket.id, false); // load the messages for the ticket
-      return res.json({ ticket: mapTicketRow(ticket), messages }); // return the ticket and messages
-    }
-    await insertSystemMessage(client, ticket.id, MSG_CUSTOMER_CLOSE); // insert a system message
-    // update the ticket to closed
-    await client.query(
-      `UPDATE ${T}
-       SET status = 'closed', updated_at = NOW(), last_message_at = NOW(),
-           resolved_at = COALESCE(resolved_at, NOW())
-       WHERE id = $1`,
-      [ticket.id]
-    );
-    await client.query('COMMIT'); // commit the transaction
-    const tr = await db.pool.query(`SELECT * FROM ${T} WHERE id = $1`, [ticket.id]); // get the ticket from the result
-    const messages = await loadMessagesForTicket(db.pool, ticket.id, false); // load the messages for the ticket
-    res.json({ ticket: mapTicketRow(tr.rows[0]), messages }); // return the ticket and messages
-  } catch (err) {
-    await safeRollback(client); // rollback the transaction
-    next(err); // next the error
-  } finally {
-    client.release(); // release the client
-  }
-});
-
-//Route to post a message to a guest support ticket
-router.post('/guest/messages', requireGuestTicketAuth, rateLimitGuestSupport, uploadArray, async (req, res, next) => {
-  const body = req.body.body != null ? String(req.body.body).trim() : ''; // get the body
-  // if the body is not found, return an error
-  if (!body && (!req.files || req.files.length === 0)) {
-    return res.status(400).json({ error: 'Message or attachment required' }); // return an error
-  }
-  const client = await db.pool.connect(); // connect to the pool
-  // try to post the message to the ticket
-  try {
-    const r = await client.query(`SELECT id FROM ${T} WHERE id = $1`, [req.guestTicketId]); // check if the ticket exists
-    // if the ticket does not exist, return an error
-    if (!r.rowCount) {
-      return res.status(404).json({ error: 'Ticket not found' }); // return an error
-    }
-    await client.query('BEGIN'); // begin a transaction
-    const msgBody = body || '(attachment)'; // get the message body
-    // insert the message into the database
-    const msgIns = await client.query(
-      `INSERT INTO ${M} (ticket_id, author_kind, author_user_id, body, is_internal)
-       VALUES ($1, 'guest', NULL, $2, false) RETURNING id`,
-      [req.guestTicketId, msgBody]
-    );
-    await insertAttachments(client, msgIns.rows[0].id, req.files); // insert the attachments into the database
-    const nextStatus = statusAfterPublicMessage('guest'); // get the next status
-    // update the ticket to the next status
-    await client.query(
-      `UPDATE ${T}
-       SET updated_at = NOW(), last_message_at = NOW(), status = $2
-       WHERE id = $1`,
-      [req.guestTicketId, nextStatus]
-    );
-    await client.query('COMMIT'); // commit the transaction
-    const tr = await db.pool.query(`SELECT * FROM ${T} WHERE id = $1`, [req.guestTicketId]); // get the ticket from the result
-    const messages = await loadMessagesForTicket(db.pool, req.guestTicketId, false); // load the messages for the ticket
-    res.status(201).json({ ticket: mapTicketRow(tr.rows[0]), messages }); // return the ticket and messages
-  } catch (err) {
-    await safeRollback(client); // rollback the transaction
-    next(err);
-  } finally {
-    client.release(); // release the client
-  }
-});
-
-//Route to find records for a guest support ticket
-router.post('/guest/find-records', rateLimitGuestSupport, async (req, res, next) => {
-  try {
-    const email = normalizeEmail(req.body.email); // normalize the email
-    const phone = normalizePhone(req.body.phone); // normalize the phone
-    // if the email or phone is not found, return an error
-    if (!email && !phone) {
-      return res.status(400).json({ error: 'email or phone required' }); // return an error
-    }
-    // check if the invoice exists
-    const r = await db.pool.query(
-      `SELECT id, invoice_id, created_at, total_amount, appointment_id, payment_status
-       FROM ${INV}
-       WHERE ($1::text IS NOT NULL AND lower(trim(coalesce(email,''))) = $1)
-          OR ($2::text IS NOT NULL AND regexp_replace(coalesce(phone,''), '[^0-9]', '', 'g') = $2)
-       ORDER BY created_at DESC
-       LIMIT 10`,
-      [email, phone]
-    );
-    // map the rows to options
-    const options = r.rows.map((row) => {
-      const invId = String(row.invoice_id || ''); // get the invoice id
-      const masked = invId.length > 4 ? `…${invId.slice(-4)}` : invId; // mask the invoice id
-      // return the option
-      return {
-        invoice_db_id: row.id, // insert the invoice id
-        invoice_label: masked, // insert the invoice label
-        created_at: row.created_at, // insert the created at
-        total_amount: row.total_amount != null ? Number(row.total_amount) : null, // insert the total amount
-        appointment_id: row.appointment_id, // insert the appointment id
-        payment_status: row.payment_status, // insert the payment status
-      };
-    });
-    res.json({ options }); // return the options
-  } catch (err) {
-    next(err); // next the error
-  }
-});
-
-//Route to verify an appointment for a guest support ticket
-router.post('/guest/verify-appointment', rateLimitGuestSupport, async (req, res, next) => {
-  // try to verify the appointment
-  try {
-    const appointmentId = parseInt(req.body.appointment_id, 10); // get the appointment id
-    const email = normalizeEmail(req.body.email); // normalize the email
-    const phone = normalizePhone(req.body.phone); // normalize the phone
-    // if the appointment id is not found, return an error
-    if (Number.isNaN(appointmentId)) {
-      return res.status(400).json({ error: 'appointment_id required' }); // return an error
-    }
-    // if the email or phone is not found, return an error
-    if (!email && !phone) {
-      return res.status(400).json({ error: 'email or phone required' }); // return an error
-    }
-    // check if the appointment exists
-    const r = await db.pool.query(
-      `SELECT id, client_email, client_phone, date, time, status FROM ${APPT} WHERE id = $1`, // check if the appointment exists
-      [appointmentId] // insert the appointment id
-    );
-    const row = r.rows[0]; // get the row from the result
-    // if the appointment does not exist, return an error
-    if (!row) {
-      return res.status(400).json({
-        error: 'If an appointment matches, it will appear after verification. Check your details.', // return an error
-      });
-    }
-    const em = normalizeEmail(row.client_email); // normalize the email
-    const ph = normalizePhone(row.client_phone); // normalize the phone
-    // check if the email or phone matches the appointment
-    const ok =
-      (email && em && email === em) || 
-      (phone && ph && phone === ph);
-    // if the email or phone does not match the appointment, return an error
-    if (!ok) {
-      return res.status(400).json({
-        error: 'If an appointment matches, it will appear after verification. Check your details.', // return an error
-      });
-    }
-    // return the appointment
-    res.json({
-      appointment: {
-        id: row.id, // insert the appointment id
-        date: row.date, // insert the date
-        time: row.time, // insert the time
-        status: row.status, // insert the status
-      },
-    });
-  } catch (err) {
-    next(err);
-  }
 });
 
 //Route to get the staff support tickets
@@ -652,9 +295,9 @@ router.post('/', requireAuth, uploadArray, async (req, res, next) => {
     // insert the ticket into the database
     const ins = await client.query(
       `INSERT INTO ${T} (
-        public_reference, user_id, guest_email, guest_phone, subject, issue_type, handler_team,
+        public_reference, user_id, subject, issue_type, handler_team,
         linked_appointment_id, linked_invoice_id, status, last_message_at, updated_at
-      ) VALUES ($1, $2, NULL, NULL, $3, $4, $5, $6, $7, 'pending_staff', NOW(), NOW())
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, 'pending_staff', NOW(), NOW())
       RETURNING *`,
       [
         public_reference,

@@ -599,9 +599,7 @@ async function seedCustomerAppointments(client, customer, customerIndex, emmaId,
 async function insertSupportTicket(client, opts) {
   const {
     publicReference,
-    userId = null,
-    guestEmail = null,
-    guestPhone = null,
+    userId,
     subject,
     issueType,
     handlerTeam = getHandlerTeamForIssue(issueType),
@@ -617,16 +615,14 @@ async function insertSupportTicket(client, opts) {
   const lastMsgAt = messages.length ? messages[messages.length - 1].createdAt : new Date();
   const ticketRes = await client.query(
     `INSERT INTO ${SCHEMA}.support_tickets (
-      public_reference, user_id, guest_email, guest_phone, subject, issue_type, handler_team,
+      public_reference, user_id, subject, issue_type, handler_team,
       linked_appointment_id, linked_invoice_id, status, priority, assigned_to_user_id,
       created_at, updated_at, resolved_at, last_message_at
-    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $13, $14, $15)
+    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $11, $12, $13)
     RETURNING id`,
     [
       publicReference,
       userId,
-      guestEmail,
-      guestPhone,
       subject,
       issueType,
       handlerTeam,
@@ -800,8 +796,7 @@ async function seedSupportTickets(client, { userIds, emmaId, niaId, customerSeed
 
   await insertSupportTicket(client, {
     publicReference: 'EE-DEMO1006',
-    guestEmail: 'walkin.guest@example.com',
-    guestPhone: '3035550199',
+    userId: victoria.customer.id,
     subject: 'Do you offer this nail art for walk-ins?',
     issueType: 'service_pricing_menu',
     status: 'closed',
@@ -809,7 +804,8 @@ async function seedSupportTickets(client, { userIds, emmaId, niaId, customerSeed
     resolvedAt: daysAgoAt(10, 12),
     messages: [
       {
-        authorKind: 'guest',
+        authorKind: 'user',
+        authorUserId: victoria.customer.id,
         body: 'Saw this design online — is it in your custom nail art tier and could someone do it this Saturday?',
         attachmentPaths: [pickAt(support, 4), pickAt(support, 5)],
         createdAt: daysAgoAt(12, 15),
@@ -1004,7 +1000,7 @@ async function main() {
     await client.query('COMMIT');
 
     console.log('\nDemo seed complete. Login with any account below (password: Demo1234!):\n');
-    console.log('  Support demo tickets: EE-DEMO1001 … EE-DEMO1006 (customer, staff, guest, and IT queues)\n');
+    console.log('  Support demo tickets: EE-DEMO1001 … EE-DEMO1006 (customer and IT queues)\n');
     console.log('  Email              Phone        Role');
     console.log('  -----------------  -----------  --------');
     for (const u of USERS) {

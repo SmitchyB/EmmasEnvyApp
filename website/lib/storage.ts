@@ -1,6 +1,6 @@
 "use client";
 
-import { AUTH_TOKEN_KEY, DEVICE_ID_KEY, GUEST_TICKET_KEY } from "@emmasenvy/shared";
+import { AUTH_TOKEN_KEY, DEVICE_ID_KEY } from "@emmasenvy/shared";
 
 function safeGet(key: string): string | null {
   if (typeof window === "undefined") return null;
@@ -48,16 +48,4 @@ export function getDeviceId(): string {
     safeSet(DEVICE_ID_KEY, id);
   }
   return id;
-}
-
-export function getGuestTicketToken(): string | null {
-  return safeGet(GUEST_TICKET_KEY);
-}
-
-export function setGuestTicketToken(token: string): void {
-  safeSet(GUEST_TICKET_KEY, token);
-}
-
-export function clearGuestTicketToken(): void {
-  safeRemove(GUEST_TICKET_KEY);
 }

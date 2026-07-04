@@ -114,7 +114,7 @@ export default function SupportStaffQueueScreen() {
             {t.public_reference} · {t.handler_team.toUpperCase()}
           </Text>
           <Text style={styles.rowSub}>
-            {t.status} · user {t.user_id ?? 'guest'} · {t.issue_type.replace(/_/g, ' ')}
+            {t.status} · user {t.user_id ?? '—'} · {t.issue_type.replace(/_/g, ' ')}
           </Text>
         </Pressable>
       ))}

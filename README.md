@@ -1,41 +1,61 @@
-# EmmasEnvy App
+# EmmasEnvy
 
-Full-stack nail salon app: Expo (React Native) frontend and Express + PostgreSQL backend.
+Full-stack nail salon platform: customer booking, staff operations, mobile POS, rewards, and support — built with **Next.js**, **Expo React Native**, **Express**, and **PostgreSQL**.
+
+## What it does
+
+| Surface | Purpose |
+|---------|---------|
+| **Website** | Marketing site, online booking, customer account, staff admin |
+| **Mobile app** | Same customer/staff flows + **in-salon POS** (cash / Square) |
+| **Backend API** | Auth, appointments, uploads, invoices, support, rewards |
+
+Both clients share one API and one TypeScript package (`packages/shared`).
+
+## Tech stack
+
+Express · PostgreSQL · JWT auth · Next.js 16 · Expo · Square (optional)
 
 ## Quick start
 
-1. **Database** — [database/README.md](database/README.md)  
-   Create a PostgreSQL database, run `database/schema.sql` and `database/seed.sql`, or use `npm run db:setup` from the backend.
+**Prerequisites:** Node 20+, PostgreSQL 14+, `DemoAssets/` folder in repo.
 
-2. **Backend** — API server  
-   ```bash
-   cd backend
-   cp .env.example .env   # set DATABASE_URL and JWT_SECRET (min 16 chars)
-   npm install
-   npm run dev
-   ```
-   Listens on port **5000** by default (`PORT` in `.env`).
+```bash
+npm install
+cd backend && npm install && cp .env.example .env
+# Set DATABASE_URL and JWT_SECRET (min 16 chars) in backend/.env
+npm run db:setup && npm run db:seed-demo
 
-3. **Frontend** — Expo app  
-   See [frontend/README.md](frontend/README.md). Set `EXPO_PUBLIC_API_URL` to your backend URL (e.g. `http://192.168.1.5:5000` on a physical device).
+cd backend && npm run dev          # API :5000
+cd website && npm run dev          # Web :3000
+cd mobile_app && npm start         # Expo
+```
 
-4. **First admin** — Sign up in the app, then:
-   ```sql
-   UPDATE emmasenvy.users SET role = 'admin' WHERE email = 'you@example.com';
-   ```
-   Or use optional demo seed: `cd backend && npm run db:seed-demo` (wipes all table data, then seeds demo — login as `emma@fake.com` / `Demo1234!`; see [database/README.md](database/README.md)).
+Per-app details: [backend/README.md](backend/README.md) · [website/README.md](website/README.md) · [mobile_app/README.md](mobile_app/README.md)
 
-## Project layout
+## Demo accounts
 
-| Path | Description |
-|------|-------------|
-| `database/` | PostgreSQL schema, seed data, setup docs |
-| `backend/` | Express API, file uploads, Square/Brevo integrations |
-| `frontend/` | Expo / React Native client |
+Password for all: **`Demo1234!`**
 
-## Optional integrations
+| Email | Role | Use for |
+|-------|------|---------|
+| `demo1@fake.com` | customer | Booking, rewards, support |
+| `emma@fake.com` | admin | Staff queue, portfolio, services, POS |
+| `demo5@fake.com` | it | Support queue (same staff tools as admin except portfolio/services) |
 
-- **Square** — card payments at POS (`SQUARE_*` in backend `.env`)
-- **Brevo** — SMTP for OTP emails (`BREVO_SMTP_*` in backend `.env`)
+Reset demo data: `cd backend && npm run db:seed-demo` (wipes and re-seeds all tables).
 
-Cash checkout works without Square. Password reset OTP requires SMTP or another mail path you configure separately.
+## Documentation
+
+| Doc | Contents |
+|-----|----------|
+| [docs/architecture.md](docs/architecture.md) | System layout, roles, feature parity |
+| [docs/api-overview.md](docs/api-overview.md) | REST endpoint reference |
+| [docs/testing-results.md](docs/testing-results.md) | QA pass results (Jul 2026) |
+| [docs/bugs-and-improvements.md](docs/bugs-and-improvements.md) | Open bugs, planned features |
+
+## Local dev notes
+
+- **Password reset / email OTP:** codes log to the **backend terminal** (no production email yet).
+- **Mobile on a physical device:** set `EXPO_PUBLIC_API_URL` to your PC's LAN IP, not `localhost`.
+- **Square card payments:** optional; cash POS works without it. See mobile/backend README env vars.

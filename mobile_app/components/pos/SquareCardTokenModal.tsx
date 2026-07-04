@@ -145,7 +145,7 @@ export function SquareCardTokenModal({
         <Text style={styles.sub}>Use Square sandbox test cards. Each token is single-use.</Text>
         {missing ? (
           <Text style={styles.err}>
-            Set EXPO_PUBLIC_SQUARE_APPLICATION_ID and EXPO_PUBLIC_SQUARE_LOCATION_ID in frontend/.env, then restart Expo.
+            Set EXPO_PUBLIC_SQUARE_APPLICATION_ID and EXPO_PUBLIC_SQUARE_LOCATION_ID in mobile_app/.env, then restart Expo.
           </Text>
         ) : (
           <WebView

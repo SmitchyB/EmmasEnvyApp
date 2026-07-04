@@ -24,9 +24,6 @@ const TEMP_TOKEN_EXPIRES_IN = '10m';
 /** After forgot-password code is verified; used only to set a new password. */
 const PASSWORD_RESET_TOKEN_EXPIRES_IN = '15m';
 
-/** Scoped JWT for guest support ticket thread access (after claim). */
-const GUEST_TICKET_JWT_EXPIRES_IN = process.env.GUEST_TICKET_JWT_EXPIRES_IN || '7d';
-
 // --- Upload / file sizes ---
 /** Max size for profile photo uploads (2 MB). */
 const MAX_PROFILE_PHOTO_SIZE = 2 * 1024 * 1024;
@@ -51,7 +48,6 @@ module.exports = {
   STAY_SIGNED_IN_JWT_EXPIRES_IN,
   TEMP_TOKEN_EXPIRES_IN,
   PASSWORD_RESET_TOKEN_EXPIRES_IN,
-  GUEST_TICKET_JWT_EXPIRES_IN,
   MAX_PROFILE_PHOTO_SIZE,
   MAX_IMAGE_SIZE,
   SALT_ROUNDS,

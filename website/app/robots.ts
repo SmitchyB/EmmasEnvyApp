@@ -11,7 +11,6 @@ export default function robots(): MetadataRoute.Robots {
         "/appointments",
         "/settings",
         "/staff/",
-        "/support/guest-",
         "/login",
         "/signup",
         "/verify-2fa",
